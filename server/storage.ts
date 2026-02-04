@@ -1,38 +1,69 @@
-import { type User, type InsertUser } from "@shared/schema";
-import { randomUUID } from "crypto";
-
-// modify the interface with any CRUD methods
-// you might need
+import { db } from "./db";
+import { profile, categories, links, type BioData } from "@shared/schema";
+import { eq, asc } from "drizzle-orm";
 
 export interface IStorage {
-  getUser(id: string): Promise<User | undefined>;
-  getUserByUsername(username: string): Promise<User | undefined>;
-  createUser(user: InsertUser): Promise<User>;
+  getBioData(): Promise<BioData>;
+  seedData(): Promise<void>;
 }
 
-export class MemStorage implements IStorage {
-  private users: Map<string, User>;
+export class DatabaseStorage implements IStorage {
+  async getBioData(): Promise<BioData> {
+    const [userProfile] = await db.select().from(profile);
+    const allCategories = await db.select().from(categories).orderBy(asc(categories.order));
+    const allLinks = await db.select().from(links).orderBy(asc(links.order));
 
-  constructor() {
-    this.users = new Map();
+    // Combine categories and links
+    const categoriesWithLinks = allCategories.map((cat) => ({
+      ...cat,
+      links: allLinks.filter((link) => link.categoryId === cat.id),
+    }));
+
+    // Return default empty profile if none exists (should be seeded though)
+    return {
+      profile: userProfile || { id: 0, name: "", bio: "", avatarUrl: "", skills: [] },
+      categories: categoriesWithLinks,
+    };
   }
 
-  async getUser(id: string): Promise<User | undefined> {
-    return this.users.get(id);
-  }
+  async seedData(): Promise<void> {
+    const existingProfile = await db.select().from(profile).limit(1);
+    if (existingProfile.length > 0) return;
 
-  async getUserByUsername(username: string): Promise<User | undefined> {
-    return Array.from(this.users.values()).find(
-      (user) => user.username === username,
-    );
-  }
+    // Seed Profile
+    await db.insert(profile).values({
+      name: "Hà Văn Huấn",
+      bio: "Full Stack Developer | Creative Thinker | Game Enthusiast",
+      avatarUrl: "https://api.dicebear.com/7.x/avataaars/svg?seed=Felix", // Placeholder avatar
+      skills: ["React", "Node.js", "TypeScript", "UI/UX Design", "Game Dev", "Cloud Architecture"],
+    });
 
-  async createUser(insertUser: InsertUser): Promise<User> {
-    const id = randomUUID();
-    const user: User = { ...insertUser, id };
-    this.users.set(id, user);
-    return user;
+    // Seed Categories (5 frames)
+    const categoryData = [
+      { title: "Personal Projects", icon: "FolderGit2", order: 1 },
+      { title: "Social Media", icon: "Share2", order: 2 },
+      { title: "My Tools", icon: "Wrench", order: 3 },
+      { title: "Favorite Games", icon: "Gamepad2", order: 4 },
+      { title: "Contact Me", icon: "Mail", order: 5 },
+    ];
+
+    const insertedCategories = await db.insert(categories).values(categoryData).returning();
+
+    // Seed Links (6-7 per category)
+    const linkData = [];
+    for (const cat of insertedCategories) {
+      for (let i = 1; i <= 6; i++) {
+        linkData.push({
+          categoryId: cat.id,
+          title: `${cat.title} Item ${i}`,
+          url: "https://example.com", // Placeholder URL
+          icon: "Link",
+          order: i,
+        });
+      }
+    }
+    await db.insert(links).values(linkData);
   }
 }
 
-export const storage = new MemStorage();
+export const storage = new DatabaseStorage();
