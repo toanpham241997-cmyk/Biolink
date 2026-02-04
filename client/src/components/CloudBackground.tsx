@@ -1,15 +1,52 @@
 import { motion } from "framer-motion";
+import { useEffect, useState } from "react";
 
 export function CloudBackground() {
+  const [shootingStars, setShootingStars] = useState<{ id: number; top: string; left: string; delay: number }[]>([]);
+
+  useEffect(() => {
+    // Only generate shooting stars for dark mode (visual only, logic runs always but CSS hides them)
+    const interval = setInterval(() => {
+      const newStar = {
+        id: Date.now(),
+        top: `${Math.random() * 40}%`,
+        left: `${Math.random() * 80 + 10}%`,
+        delay: Math.random() * 2,
+      };
+      setShootingStars(prev => [...prev.slice(-5), newStar]);
+    }, 3000);
+    return () => clearInterval(interval);
+  }, []);
+
   return (
     <div className="fixed inset-0 pointer-events-none overflow-hidden -z-10">
-      {/* Sun */}
+      {/* Shooting Stars (Dark Mode Only) */}
+      <div className="absolute inset-0 hidden dark:block">
+        {shootingStars.map(star => (
+          <motion.div
+            key={star.id}
+            className="absolute h-0.5 bg-gradient-to-r from-transparent via-white to-transparent"
+            style={{ 
+              top: star.top, 
+              left: star.left, 
+              width: "100px",
+              rotate: "-35deg",
+              filter: "blur(1px)"
+            }}
+            initial={{ x: -100, opacity: 0 }}
+            animate={{ x: 400, opacity: [0, 1, 0] }}
+            transition={{ duration: 1, ease: "easeOut", delay: star.delay }}
+          />
+        ))}
+      </div>
+
+      {/* Sun / Moon */}
       <motion.div 
-        className="absolute top-10 right-10 w-24 h-24 md:w-32 md:h-32 bg-yellow-400 rounded-full blur-sm opacity-80"
+        className="absolute top-10 right-10 w-24 h-24 md:w-32 md:h-32 bg-yellow-400 dark:bg-slate-200 rounded-full blur-sm opacity-80"
         animate={{ scale: [1, 1.1, 1] }}
         transition={{ duration: 4, repeat: Infinity }}
       />
-      <div className="absolute top-10 right-10 w-24 h-24 md:w-32 md:h-32 bg-yellow-300 rounded-full shadow-[0_0_60px_rgba(253,224,71,0.6)]" />
+      <div className="absolute top-10 right-10 w-24 h-24 md:w-32 md:h-32 bg-yellow-300 dark:bg-slate-100 rounded-full shadow-[0_0_60px_rgba(253,224,71,0.6)] dark:shadow-[0_0_40px_rgba(255,255,255,0.3)]" />
 
       {/* Clouds */}
       <Cloud top="10%" left="10%" scale={1.5} delay={0} />

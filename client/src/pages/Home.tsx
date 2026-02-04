@@ -63,8 +63,40 @@ export default function Home() {
       </main>
 
       {/* Footer */}
-      <footer className="py-8 text-center text-muted-foreground text-sm font-medium">
-        <p>© 2024 Hà Văn Huấn. Built with 💖 and React.</p>
+      <footer className="py-12 px-4 max-w-2xl mx-auto border-t border-primary/10">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-8 text-left">
+          <div className="space-y-3">
+            <h3 className="font-display font-bold text-lg text-primary">About This Page</h3>
+            <p className="text-muted-foreground leading-relaxed">
+              This bio link page is designed with a game-like aesthetic, representing a journey through technology and creativity. 
+              Every interaction is crafted to be playful and engaging.
+            </p>
+          </div>
+          <div className="space-y-3">
+            <h3 className="font-display font-bold text-lg text-primary">Core Features</h3>
+            <ul className="space-y-2 text-muted-foreground">
+              <li className="flex items-center gap-2">
+                <div className="w-1.5 h-1.5 rounded-full bg-accent" />
+                Dynamic Cloud Background
+              </li>
+              <li className="flex items-center gap-2">
+                <div className="w-1.5 h-1.5 rounded-full bg-accent" />
+                Interactive Game UI Frames
+              </li>
+              <li className="flex items-center gap-2">
+                <div className="w-1.5 h-1.5 rounded-full bg-accent" />
+                Smooth Framer Motion Effects
+              </li>
+              <li className="flex items-center gap-2">
+                <div className="w-1.5 h-1.5 rounded-full bg-accent" />
+                Dark Mode Shooting Stars
+              </li>
+            </ul>
+          </div>
+        </div>
+        <div className="pt-8 border-t border-primary/5 text-center text-muted-foreground text-sm font-medium">
+          <p>© 2024 Hà Văn Huấn. Built with 💖 using React & Tailwind.</p>
+        </div>
       </footer>
     </div>
   );
