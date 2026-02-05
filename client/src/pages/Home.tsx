@@ -50,7 +50,7 @@ export default function Home() {
   onClick={() => setIsMenuOpen(true)}
   className="w-10 h-10 rounded-full bg-primary flex items-center justify-center font-bold text-white shadow-lg active:scale-95 transition"
 >
-  H
+  DEV
 </button>
           <span className="font-display font-bold text-lg hidden sm:block">My Bio</span>
         </div>
