@@ -1,6 +1,6 @@
 import { Category, Link as LinkType } from "@/hooks/use-bio";
 import { motion, AnimatePresence } from "framer-motion";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import * as Icons from "lucide-react";
 
 interface CategoryAccordionProps {
@@ -8,11 +8,64 @@ interface CategoryAccordionProps {
   index: number;
 }
 
+/** Check icon string is a URL (http/https or data:image) */
+function isIconUrl(value: unknown): value is string {
+  if (typeof value !== "string") return false;
+  const v = value.trim();
+  if (!v) return false;
+  return (
+    v.startsWith("http://") ||
+    v.startsWith("https://") ||
+    v.startsWith("data:image/")
+  );
+}
+
+/** Render icon from URL or lucide name */
+function IconView({
+  icon,
+  alt,
+  size = 24,
+  className = "",
+  fallbackLucide = "Folder",
+}: {
+  icon: unknown;
+  alt: string;
+  size?: number;
+  className?: string;
+  fallbackLucide?: keyof typeof Icons;
+}) {
+  // If URL => image
+  if (isIconUrl(icon)) {
+    return (
+      <img
+        src={icon}
+        alt={alt}
+        width={size}
+        height={size}
+        className={`object-contain ${className}`}
+        loading="lazy"
+        onError={(e) => {
+          // Hide broken image if URL invalid
+          (e.currentTarget as HTMLImageElement).style.display = "none";
+        }}
+      />
+    );
+  }
+
+  // Else => lucide component name
+  const name = (typeof icon === "string" ? icon : "") as keyof typeof Icons;
+  const LucideCmp =
+    (Icons as any)[name] || (Icons as any)[fallbackLucide] || Icons.Folder;
+
+  return <LucideCmp size={size} className={className} strokeWidth={2.5} />;
+}
+
 export function CategoryAccordion({ category, index }: CategoryAccordionProps) {
   const [isOpen, setIsOpen] = useState(false);
 
-  // Dynamic Icon Component
-  const IconComponent = (Icons as any)[category.icon] || Icons.Folder;
+  // keep stable values (avoid re-render jitter)
+  const categoryTitle = category?.title ?? "";
+  const categoryIcon = category?.icon;
 
   return (
     <motion.div
@@ -22,7 +75,7 @@ export function CategoryAccordion({ category, index }: CategoryAccordionProps) {
       className="w-full"
     >
       <motion.button
-        onClick={() => setIsOpen(!isOpen)}
+        onClick={() => setIsOpen((v) => !v)}
         whileHover={{ scale: 1.02, y: -2 }}
         whileTap={{ scale: 0.98 }}
         className={`
@@ -30,22 +83,32 @@ export function CategoryAccordion({ category, index }: CategoryAccordionProps) {
           bg-white dark:bg-card
           game-border
           transition-colors duration-200
-          ${isOpen ? 'bg-blue-50 dark:bg-primary/10 border-accent' : 'border-primary'}
+          ${isOpen ? "bg-blue-50 dark:bg-primary/10 border-accent" : "border-primary"}
         `}
       >
         <div className="flex items-center gap-4">
-          <div className={`
-            p-3 rounded-full 
-            ${isOpen ? 'bg-accent text-accent-foreground' : 'bg-primary/10 text-primary'}
-            transition-colors duration-300
-          `}>
-            <IconComponent size={24} strokeWidth={2.5} />
+          <div
+            className={`
+              p-3 rounded-full 
+              ${isOpen ? "bg-accent text-accent-foreground" : "bg-primary/10 text-primary"}
+              transition-colors duration-300
+            `}
+          >
+            {/* ✅ Category icon supports URL */}
+            <IconView
+              icon={categoryIcon}
+              alt={categoryTitle}
+              size={24}
+              className="w-6 h-6"
+              fallbackLucide="Folder"
+            />
           </div>
+
           <span className="text-xl font-bold text-foreground text-left">
-            {category.title}
+            {categoryTitle}
           </span>
         </div>
-        
+
         <motion.div
           animate={{ rotate: isOpen ? 180 : 0 }}
           transition={{ type: "spring", stiffness: 200, damping: 20 }}
@@ -64,7 +127,7 @@ export function CategoryAccordion({ category, index }: CategoryAccordionProps) {
             className="overflow-hidden"
           >
             <div className="pt-2 pb-4 px-2 space-y-2">
-              {category.links.map((link) => (
+              {category.links?.map((link) => (
                 <LinkCard key={link.id} link={link} />
               ))}
             </div>
@@ -76,11 +139,18 @@ export function CategoryAccordion({ category, index }: CategoryAccordionProps) {
 }
 
 function LinkCard({ link }: { link: LinkType }) {
-  const LinkIcon = (Icons as any)[link.icon] || Icons.Link;
+  const linkTitle = link?.title ?? "";
+  const linkIcon = link?.icon;
+
+  // avoid invalid url
+  const href = useMemo(() => {
+    const u = (link?.url ?? "").trim();
+    return u || "#";
+  }, [link?.url]);
 
   return (
     <motion.a
-      href={link.url}
+      href={href}
       target="_blank"
       rel="noopener noreferrer"
       whileHover={{ x: 10, backgroundColor: "rgba(var(--primary), 0.1)" }}
@@ -95,11 +165,20 @@ function LinkCard({ link }: { link: LinkType }) {
       "
     >
       <div className="p-2 rounded-lg bg-background shadow-sm text-primary group-hover:text-accent transition-colors">
-        <LinkIcon size={18} />
+        {/* ✅ Link icon supports URL */}
+        <IconView
+          icon={linkIcon}
+          alt={linkTitle}
+          size={18}
+          className="w-[18px] h-[18px]"
+          fallbackLucide="Link"
+        />
       </div>
+
       <span className="font-semibold text-foreground/80 group-hover:text-foreground">
-        {link.title}
+        {linkTitle}
       </span>
+
       <Icons.ArrowUpRight className="ml-auto w-4 h-4 opacity-0 group-hover:opacity-100 transition-opacity text-accent" />
     </motion.a>
   );
