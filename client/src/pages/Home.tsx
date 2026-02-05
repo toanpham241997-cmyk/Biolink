@@ -1,6 +1,4 @@
 import { useBio } from "@/hooks/use-bio";
-import { useState } from "react";
-import { useEffect } from "react";
 import WelcomeModal from "@/components/WelcomeModal";
 import ContactCard from "@/components/ContactCard";
 import { ProfileHeader } from "@/components/ProfileHeader";
@@ -14,11 +12,7 @@ import { Card, CardContent } from "@/components/ui/card";
 
 export default function Home() {
   const { data, isLoading, error } = useBio();
-  const [isMenuOpen, setIsMenuOpen] = useState(false);
-  useEffect(() => {
-  document.body.style.overflow = isMenuOpen ? "hidden" : "auto";
-}, [isMenuOpen]);
-
+  
   if (isLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
@@ -58,62 +52,7 @@ export default function Home() {
           <ThemeToggle />
         </div>
       </header>
-      <AnimatePresence>
-  {isMenuOpen && (
-    <>
-      {/* Overlay mờ */}
-      <motion.div
-        className="fixed inset-0 z-[60] bg-black/40"
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        exit={{ opacity: 0 }}
-        onClick={() => setIsMenuOpen(false)}
-      />
-
-      {/* Menu */}
-      <motion.aside
-        initial={{ x: "-100%" }}
-        animate={{ x: 0 }}
-        exit={{ x: "-100%" }}
-        transition={{ type: "spring", stiffness: 260, damping: 28 }}
-        className="fixed left-0 top-0 z-[70] h-full w-[80%] max-w-[320px]
-                   bg-white dark:bg-card game-border shadow-2xl"
-      >
-        <div className="p-4 border-b border-primary/20 flex justify-between items-center">
-          <span className="font-bold text-lg">🎮 Menu</span>
-          <button
-            onClick={() => setIsMenuOpen(false)}
-            className="px-3 py-1 rounded-lg border border-primary/30 hover:bg-primary/10"
-          >
-            Đóng
-          </button>
-        </div>
-
-        <nav className="p-4 space-y-3">
-          <a className="block p-3 rounded-xl bg-primary/5 hover:bg-primary/10">
-            Trang chủ
-          </a>
-          <a
-            href="#footer-tabs"
-            className="block p-3 rounded-xl bg-primary/5 hover:bg-primary/10"
-          >
-            Liên hệ
-          </a>
-          <button
-            onClick={() => {
-              setIsMenuOpen(false);
-              window.scrollTo({ top: 0, behavior: "smooth" });
-            }}
-            className="w-full text-left p-3 rounded-xl bg-primary/5 hover:bg-primary/10"
-          >
-            Lên đầu trang
-          </button>
-        </nav>
-      </motion.aside>
-    </>
-  )}
-</AnimatePresence>
-
+      
       {/* Main Content */}
       <main className="pt-24 pb-16 px-4 sm:px-6 max-w-2xl mx-auto flex flex-col items-center gap-8">
         
