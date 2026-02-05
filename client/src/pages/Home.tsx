@@ -32,7 +32,7 @@ export default function Home() {
   return (
     <>
     <WelcomeModal />
-
+    <div className="min-h-screen relative overflow-x-hidden">
     <div className="min-h-screen relative overflow-x-hidden">
       <CloudBackground />
       
