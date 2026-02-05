@@ -10,7 +10,8 @@ export async function registerRoutes(
   
   // Seed data on startup
   await storage.seedData();
-
+await registerRoutes(httpServer, app);
+  
   app.get(api.bio.get.path, async (req, res) => {
     const data = await storage.getBioData();
     res.json(data);
