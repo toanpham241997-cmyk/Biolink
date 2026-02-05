@@ -18,7 +18,7 @@ const FALLBACK_DATA: BioData = {
     id: 1,
     name: "Hà Văn Huấn",
     bio: "Full Stack Developer | Creative Thinker | Game Enthusiast",
-    avatarUrl: "https://api.dicebear.com/7.x/avataaars/svg?seed=Felix",
+    avatarUrl: "https://sf-static.upanhlaylink.com/img/image_202602059ab3ff86cc2fd62107afdb02cb6d7c9d.jpg",
     skills: [
       "React",
       "Node.js",
@@ -31,7 +31,7 @@ const FALLBACK_DATA: BioData = {
   categories: [
     {
       id: 1,
-      title: "Personal Projects",
+      title: "Hack Free Fire",
       icon: "FolderGit2",
       order: 1,
       links: Array.from({ length: 6 }).map((_, i) => ({
@@ -45,7 +45,7 @@ const FALLBACK_DATA: BioData = {
     },
     {
       id: 2,
-      title: "Social Media",
+      title: "Hack Liên Quân",
       icon: "Share2",
       order: 2,
       links: Array.from({ length: 6 }).map((_, i) => ({
@@ -59,7 +59,7 @@ const FALLBACK_DATA: BioData = {
     },
     {
       id: 3,
-      title: "My Tools",
+      title: "Hack Pubg",
       icon: "Wrench",
       order: 3,
       links: Array.from({ length: 6 }).map((_, i) => ({
@@ -73,7 +73,7 @@ const FALLBACK_DATA: BioData = {
     },
     {
       id: 4,
-      title: "Favorite Games",
+      title: "Hack Fc Mobile",
       icon: "Gamepad2",
       order: 4,
       links: Array.from({ length: 6 }).map((_, i) => ({
