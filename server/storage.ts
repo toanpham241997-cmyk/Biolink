@@ -33,16 +33,16 @@ const FALLBACK_DATA: BioData = {
   categories: [
     {
       id: 1,
-      title: "Personal Projects",
-      icon: "FolderGit2",
+      title: "Free Fire Hack",
+      icon: "https://sf-static.upanhlaylink.com/img/image_2026020536259477749eaded81bff5aa4c17c271.jpg",
       order: 1,
       links: [
         {
           id: 1,
           categoryId: 1,
-          title: "Portfolio",
+          title: "Hack Menu",
           url: "https://your-portfolio.com",
-          icon: "Globe",
+          icon: "Link",
           order: 1,
         },
         {
@@ -50,7 +50,7 @@ const FALLBACK_DATA: BioData = {
           categoryId: 1,
           title: "GitHub",
           url: "https://github.com/yourname",
-          icon: "Github",
+          icon: "Link",
           order: 2,
         },
         {
@@ -58,7 +58,7 @@ const FALLBACK_DATA: BioData = {
           categoryId: 1,
           title: "CV / Resume",
           url: "https://drive.google.com/",
-          icon: "FileText",
+          icon: "Link",
           order: 3,
         },
         {
@@ -66,7 +66,7 @@ const FALLBACK_DATA: BioData = {
           categoryId: 1,
           title: "Blog",
           url: "https://medium.com/@yourname",
-          icon: "PenLine",
+          icon: "Link",
           order: 4,
         },
         {
@@ -74,7 +74,7 @@ const FALLBACK_DATA: BioData = {
           categoryId: 1,
           title: "Case Study",
           url: "https://notion.so/",
-          icon: "BookOpen",
+          icon: "Link",
           order: 5,
         },
         {
@@ -82,7 +82,7 @@ const FALLBACK_DATA: BioData = {
           categoryId: 1,
           title: "Demo App",
           url: "https://yourapp.onrender.com",
-          icon: "ExternalLink",
+          icon: "Link",
           order: 6,
         },
       ],
@@ -90,8 +90,8 @@ const FALLBACK_DATA: BioData = {
 
     {
       id: 2,
-      title: "Social Media",
-      icon: "Share2",
+      title: "Liên Quân Hack",
+      icon: "https://sf-static.upanhlaylink.com/img/image_20260205b62651422685f3ee68f5e7be6587979a.jpg",
       order: 2,
       links: [
         {
@@ -99,7 +99,7 @@ const FALLBACK_DATA: BioData = {
           categoryId: 2,
           title: "Facebook",
           url: "https://facebook.com/yourname",
-          icon: "Facebook",
+          icon: "Link",
           order: 1,
         },
         {
@@ -107,7 +107,7 @@ const FALLBACK_DATA: BioData = {
           categoryId: 2,
           title: "Instagram",
           url: "https://instagram.com/yourname",
-          icon: "Instagram",
+          icon: "Link",
           order: 2,
         },
         {
@@ -115,7 +115,7 @@ const FALLBACK_DATA: BioData = {
           categoryId: 2,
           title: "TikTok",
           url: "https://tiktok.com/@yourname",
-          icon: "Music2",
+          icon: "Link",
           order: 3,
         },
         {
@@ -123,7 +123,7 @@ const FALLBACK_DATA: BioData = {
           categoryId: 2,
           title: "YouTube",
           url: "https://youtube.com/@yourname",
-          icon: "Youtube",
+          icon: "Link",
           order: 4,
         },
         {
@@ -131,7 +131,7 @@ const FALLBACK_DATA: BioData = {
           categoryId: 2,
           title: "X (Twitter)",
           url: "https://x.com/yourname",
-          icon: "Twitter",
+          icon: "Link",
           order: 5,
         },
         {
@@ -139,7 +139,7 @@ const FALLBACK_DATA: BioData = {
           categoryId: 2,
           title: "LinkedIn",
           url: "https://linkedin.com/in/yourname",
-          icon: "Linkedin",
+          icon: "Link",
           order: 6,
         },
       ],
@@ -147,8 +147,8 @@ const FALLBACK_DATA: BioData = {
 
     {
       id: 3,
-      title: "My Tools",
-      icon: "Wrench",
+      title: "Pubg Hack Game",
+      icon: "https://sf-static.upanhlaylink.com/img/image_20260205b62651422685f3ee68f5e7be6587979a.jpg",
       order: 3,
       links: [
         {
@@ -156,7 +156,7 @@ const FALLBACK_DATA: BioData = {
           categoryId: 3,
           title: "VS Code",
           url: "https://code.visualstudio.com",
-          icon: "Code2",
+          icon: "Link",
           order: 1,
         },
         {
@@ -164,7 +164,7 @@ const FALLBACK_DATA: BioData = {
           categoryId: 3,
           title: "Node.js",
           url: "https://nodejs.org",
-          icon: "Terminal",
+          icon: "Link",
           order: 2,
         },
         {
@@ -172,7 +172,7 @@ const FALLBACK_DATA: BioData = {
           categoryId: 3,
           title: "React",
           url: "https://react.dev",
-          icon: "Sparkles",
+          icon: "Link",
           order: 3,
         },
         {
@@ -180,7 +180,7 @@ const FALLBACK_DATA: BioData = {
           categoryId: 3,
           title: "Render",
           url: "https://render.com",
-          icon: "Cloud",
+          icon: "Link",
           order: 4,
         },
         {
@@ -188,7 +188,7 @@ const FALLBACK_DATA: BioData = {
           categoryId: 3,
           title: "PostgreSQL",
           url: "https://www.postgresql.org",
-          icon: "Database",
+          icon: "Link",
           order: 5,
         },
         {
@@ -196,7 +196,7 @@ const FALLBACK_DATA: BioData = {
           categoryId: 3,
           title: "Drizzle ORM",
           url: "https://orm.drizzle.team",
-          icon: "Droplet",
+          icon: "Link",
           order: 6,
         },
       ],
@@ -204,8 +204,8 @@ const FALLBACK_DATA: BioData = {
 
     {
       id: 4,
-      title: "Favorite Games",
-      icon: "Gamepad2",
+      title: "Regedit Free Fire",
+      icon: "https://sf-static.upanhlaylink.com/img/image_20260205b62651422685f3ee68f5e7be6587979a.jpg",
       order: 4,
       links: [
         {
@@ -213,7 +213,7 @@ const FALLBACK_DATA: BioData = {
           categoryId: 4,
           title: "Steam",
           url: "https://store.steampowered.com",
-          icon: "ShoppingCart",
+          icon: "Link",
           order: 1,
         },
         {
@@ -221,7 +221,7 @@ const FALLBACK_DATA: BioData = {
           categoryId: 4,
           title: "Epic Games",
           url: "https://store.epicgames.com",
-          icon: "Store",
+          icon: "Link",
           order: 2,
         },
         {
@@ -229,7 +229,7 @@ const FALLBACK_DATA: BioData = {
           categoryId: 4,
           title: "PlayStation",
           url: "https://www.playstation.com",
-          icon: "Gamepad2",
+          icon: "Link",
           order: 3,
         },
         {
@@ -237,7 +237,7 @@ const FALLBACK_DATA: BioData = {
           categoryId: 4,
           title: "Xbox",
           url: "https://www.xbox.com",
-          icon: "Gamepad2",
+          icon: "Link",
           order: 4,
         },
         {
@@ -245,7 +245,7 @@ const FALLBACK_DATA: BioData = {
           categoryId: 4,
           title: "Nintendo",
           url: "https://www.nintendo.com",
-          icon: "Gamepad2",
+          icon: "Link",
           order: 5,
         },
         {
@@ -253,7 +253,7 @@ const FALLBACK_DATA: BioData = {
           categoryId: 4,
           title: "My Game Clips",
           url: "https://youtube.com/@yourname",
-          icon: "Play",
+          icon: "Link",
           order: 6,
         },
       ],
@@ -261,8 +261,8 @@ const FALLBACK_DATA: BioData = {
 
     {
       id: 5,
-      title: "Contact Me",
-      icon: "Mail",
+      title: "Hack Fc Vn",
+      icon: "https://sf-static.upanhlaylink.com/img/image_20260205b62651422685f3ee68f5e7be6587979a.jpg",
       order: 5,
       links: [
         {
@@ -270,7 +270,7 @@ const FALLBACK_DATA: BioData = {
           categoryId: 5,
           title: "Email",
           url: "mailto:yourmail@gmail.com",
-          icon: "Mail",
+          icon: "Link",
           order: 1,
         },
         {
@@ -278,7 +278,7 @@ const FALLBACK_DATA: BioData = {
           categoryId: 5,
           title: "Zalo",
           url: "https://zalo.me/yourid",
-          icon: "MessageCircle",
+          icon: "Link",
           order: 2,
         },
         {
@@ -286,7 +286,7 @@ const FALLBACK_DATA: BioData = {
           categoryId: 5,
           title: "Telegram",
           url: "https://t.me/yourname",
-          icon: "Send",
+          icon: "Link",
           order: 3,
         },
         {
@@ -294,7 +294,7 @@ const FALLBACK_DATA: BioData = {
           categoryId: 5,
           title: "WhatsApp",
           url: "https://wa.me/your-number",
-          icon: "Phone",
+          icon: "Link",
           order: 4,
         },
         {
@@ -302,7 +302,7 @@ const FALLBACK_DATA: BioData = {
           categoryId: 5,
           title: "Messenger",
           url: "https://m.me/yourname",
-          icon: "MessageSquare",
+          icon: "Link",
           order: 5,
         },
         {
@@ -310,7 +310,7 @@ const FALLBACK_DATA: BioData = {
           categoryId: 5,
           title: "Booking / Meeting",
           url: "https://cal.com/yourname",
-          icon: "Calendar",
+          icon: "Link",
           order: 6,
         },
       ],
