@@ -1,5 +1,6 @@
 import { useBio } from "@/hooks/use-bio";
 import { Link } from "wouter";
+import { useLocation } from "wouter";
 import { useEffect, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { Image, Code2, Bot, X } from "lucide-react";
@@ -15,6 +16,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent } from "@/components/ui/card";
 
 export default function Home() {
+  const [, navigate] = useLocation();
   const { data, isLoading, error } = useBio();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
 
@@ -144,9 +146,9 @@ const openLink = (url: string) => {
           </button>
 
           <button
-            onClick={() => openLink("https://chat.openai.com/")} // hoặc route chatbot của bạn
-            className="w-full flex items-center gap-3 p-4 rounded-2xl bg-white/70 dark:bg-card/60 game-border hover:scale-[1.02] active:scale-[0.99] transition"
-          >
+  onClick={() => navigate("/chat")}
+  className="w-full flex items-center gap-3 p-4 rounded-2xl bg-white/70 dark:bg-card/60 game-border hover:scale-[1.02] active:scale-[0.99] transition"
+>
             <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center">
               <Bot className="w-5 h-5 text-primary" />
             </div>
