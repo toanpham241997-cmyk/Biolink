@@ -7,19 +7,36 @@ export interface IStorage {
   seedData(): Promise<void>;
 }
 
+function isMissingTableError(err: any) {
+  const msg = String(err?.message || "");
+  // postgres missing relation
+  return msg.includes("does not exist") || msg.includes("relation");
+}
+
 export class DatabaseStorage implements IStorage {
   async seedData(): Promise<void> {
+    // 1) Check bảng profile có đọc được không
     try {
       const existing = await db.select().from(profile).limit(1);
-      if (existing.length > 0) return;
+      if (existing.length > 0) {
+        return; // đã có data
+      }
     } catch (err) {
-      console.warn("⚠️ Tables not ready or profile table missing, skip seeding");
-      console.warn(err);
-      return;
+      // Nếu bảng chưa tồn tại => không seed được, trả về để server vẫn chạy
+      if (isMissingTableError(err)) {
+        console.warn(
+          "⚠️ Tables not ready (profile missing). Run `drizzle-kit push` with correct DATABASE_URL.",
+        );
+        return;
+      }
+      // lỗi khác: throw để biết thật sự hỏng
+      console.error("❌ seedData failed (unexpected):", err);
+      throw err;
     }
 
-    console.log("⚙️ Seeding database...");
+    console.log("⚙️ Seeding database (profile/categories/links) ...");
 
+    // 2) Insert profile
     await db.insert(profile).values({
       name: "Hà Văn Huấn",
       bio: "Full Stack Developer | Creative Thinker | Game Enthusiast",
@@ -34,6 +51,7 @@ export class DatabaseStorage implements IStorage {
       ],
     });
 
+    // 3) Insert categories
     const insertedCategories = await db
       .insert(categories)
       .values([
@@ -45,7 +63,8 @@ export class DatabaseStorage implements IStorage {
       ])
       .returning();
 
-    const linkData: {
+    // 4) Insert links
+    const linkRows: {
       categoryId: number;
       title: string;
       url: string;
@@ -55,7 +74,7 @@ export class DatabaseStorage implements IStorage {
 
     for (const cat of insertedCategories) {
       for (let i = 1; i <= 6; i++) {
-        linkData.push({
+        linkRows.push({
           categoryId: cat.id,
           title: `${cat.title} Item ${i}`,
           url: "https://example.com",
@@ -65,38 +84,57 @@ export class DatabaseStorage implements IStorage {
       }
     }
 
-    await db.insert(links).values(linkData);
+    await db.insert(links).values(linkRows);
 
-    console.log("✅ Seed done");
+    console.log("✅ Seed completed");
   }
 
   async getBioData(): Promise<BioData> {
+    // Seed không được crash server
     await this.seedData();
 
-    const [userProfile] = await db.select().from(profile).limit(1);
+    // Nếu bảng chưa có => trả fallback để FE vẫn render
+    try {
+      const [userProfile] = await db.select().from(profile).limit(1);
 
-    const allCategories = await db
-      .select()
-      .from(categories)
-      .orderBy(asc(categories.order));
+      const allCategories = await db
+        .select()
+        .from(categories)
+        .orderBy(asc(categories.order));
 
-    const allLinks = await db.select().from(links).orderBy(asc(links.order));
+      const allLinks = await db.select().from(links).orderBy(asc(links.order));
 
-    return {
-      profile: userProfile || {
-        id: 0,
-        name: "",
-        bio: "",
-        avatarUrl: "",
-        skills: [],
-      },
-      categories: allCategories.map((cat) => ({
+      const categoriesWithLinks = allCategories.map((cat) => ({
         ...cat,
         links: allLinks.filter((l) => l.categoryId === cat.id),
-      })),
-    };
+      }));
+
+      return {
+        profile: userProfile ?? {
+          id: 0,
+          name: "No profile yet",
+          bio: "Run migrations first",
+          avatarUrl: "",
+          skills: [],
+        },
+        categories: categoriesWithLinks,
+      };
+    } catch (err) {
+      if (isMissingTableError(err)) {
+        return {
+          profile: {
+            id: 0,
+            name: "DB not migrated",
+            bio: "Please set DATABASE_URL and run drizzle push",
+            avatarUrl: "",
+            skills: [],
+          },
+          categories: [],
+        };
+      }
+      throw err;
+    }
   }
 }
 
-// ✅ DÒNG NÀY PHẢI 1 DÒNG DUY NHẤT
 export const storage = new DatabaseStorage();
