@@ -1,140 +1,124 @@
-import { db } from "./db";
-import { profile, categories, links, type BioData } from "@shared/schema";
-import { asc } from "drizzle-orm";
+import { type BioData } from "@shared/schema";
 
+/**
+ * Storage interface
+ */
 export interface IStorage {
   getBioData(): Promise<BioData>;
   seedData(): Promise<void>;
 }
 
-function isMissingTableError(err: any) {
-  const msg = String(err?.message || "");
-  // postgres missing relation
-  return msg.includes("does not exist") || msg.includes("relation");
-}
+/**
+ * ✅ Fallback data (không cần DB)
+ * - Web chạy ổn trên Render Free
+ * - Không cần migrate / drizzle push
+ */
+const FALLBACK_DATA: BioData = {
+  profile: {
+    id: 1,
+    name: "Hà Văn Huấn",
+    bio: "Full Stack Developer | Creative Thinker | Game Enthusiast",
+    avatarUrl: "https://api.dicebear.com/7.x/avataaars/svg?seed=Felix",
+    skills: [
+      "React",
+      "Node.js",
+      "TypeScript",
+      "UI/UX Design",
+      "Game Dev",
+      "Cloud Architecture",
+    ],
+  },
+  categories: [
+    {
+      id: 1,
+      title: "Personal Projects",
+      icon: "FolderGit2",
+      order: 1,
+      links: Array.from({ length: 6 }).map((_, i) => ({
+        id: i + 1,
+        categoryId: 1,
+        title: `Personal Projects Item ${i + 1}`,
+        url: "https://example.com",
+        icon: "Link",
+        order: i + 1,
+      })),
+    },
+    {
+      id: 2,
+      title: "Social Media",
+      icon: "Share2",
+      order: 2,
+      links: Array.from({ length: 6 }).map((_, i) => ({
+        id: i + 101,
+        categoryId: 2,
+        title: `Social Media Item ${i + 1}`,
+        url: "https://example.com",
+        icon: "Link",
+        order: i + 1,
+      })),
+    },
+    {
+      id: 3,
+      title: "My Tools",
+      icon: "Wrench",
+      order: 3,
+      links: Array.from({ length: 6 }).map((_, i) => ({
+        id: i + 201,
+        categoryId: 3,
+        title: `My Tools Item ${i + 1}`,
+        url: "https://example.com",
+        icon: "Link",
+        order: i + 1,
+      })),
+    },
+    {
+      id: 4,
+      title: "Favorite Games",
+      icon: "Gamepad2",
+      order: 4,
+      links: Array.from({ length: 6 }).map((_, i) => ({
+        id: i + 301,
+        categoryId: 4,
+        title: `Favorite Games Item ${i + 1}`,
+        url: "https://example.com",
+        icon: "Link",
+        order: i + 1,
+      })),
+    },
+    {
+      id: 5,
+      title: "Contact Me",
+      icon: "Mail",
+      order: 5,
+      links: Array.from({ length: 6 }).map((_, i) => ({
+        id: i + 401,
+        categoryId: 5,
+        title: `Contact Me Item ${i + 1}`,
+        url: "https://example.com",
+        icon: "Link",
+        order: i + 1,
+      })),
+    },
+  ],
+};
 
-export class DatabaseStorage implements IStorage {
+/**
+ * ✅ Memory storage
+ */
+export class MemoryStorage implements IStorage {
+  private data: BioData = FALLBACK_DATA;
+
   async seedData(): Promise<void> {
-    // 1) Check bảng profile có đọc được không
-    try {
-      const existing = await db.select().from(profile).limit(1);
-      if (existing.length > 0) {
-        return; // đã có data
-      }
-    } catch (err) {
-      // Nếu bảng chưa tồn tại => không seed được, trả về để server vẫn chạy
-      if (isMissingTableError(err)) {
-        console.warn(
-          "⚠️ Tables not ready (profile missing). Run `drizzle-kit push` with correct DATABASE_URL.",
-        );
-        return;
-      }
-      // lỗi khác: throw để biết thật sự hỏng
-      console.error("❌ seedData failed (unexpected):", err);
-      throw err;
-    }
-
-    console.log("⚙️ Seeding database (profile/categories/links) ...");
-
-    // 2) Insert profile
-    await db.insert(profile).values({
-      name: "Hà Văn Huấn",
-      bio: "Full Stack Developer | Creative Thinker | Game Enthusiast",
-      avatarUrl: "https://api.dicebear.com/7.x/avataaars/svg?seed=Felix",
-      skills: [
-        "React",
-        "Node.js",
-        "TypeScript",
-        "UI/UX Design",
-        "Game Dev",
-        "Cloud Architecture",
-      ],
-    });
-
-    // 3) Insert categories
-    const insertedCategories = await db
-      .insert(categories)
-      .values([
-        { title: "Personal Projects", icon: "FolderGit2", order: 1 },
-        { title: "Social Media", icon: "Share2", order: 2 },
-        { title: "My Tools", icon: "Wrench", order: 3 },
-        { title: "Favorite Games", icon: "Gamepad2", order: 4 },
-        { title: "Contact Me", icon: "Mail", order: 5 },
-      ])
-      .returning();
-
-    // 4) Insert links
-    const linkRows: {
-      categoryId: number;
-      title: string;
-      url: string;
-      icon: string;
-      order: number;
-    }[] = [];
-
-    for (const cat of insertedCategories) {
-      for (let i = 1; i <= 6; i++) {
-        linkRows.push({
-          categoryId: cat.id,
-          title: `${cat.title} Item ${i}`,
-          url: "https://example.com",
-          icon: "Link",
-          order: i,
-        });
-      }
-    }
-
-    await db.insert(links).values(linkRows);
-
-    console.log("✅ Seed completed");
+    // Memory storage: data luôn có sẵn
+    return;
   }
 
   async getBioData(): Promise<BioData> {
-    // Seed không được crash server
-    await this.seedData();
-
-    // Nếu bảng chưa có => trả fallback để FE vẫn render
-    try {
-      const [userProfile] = await db.select().from(profile).limit(1);
-
-      const allCategories = await db
-        .select()
-        .from(categories)
-        .orderBy(asc(categories.order));
-
-      const allLinks = await db.select().from(links).orderBy(asc(links.order));
-
-      const categoriesWithLinks = allCategories.map((cat) => ({
-        ...cat,
-        links: allLinks.filter((l) => l.categoryId === cat.id),
-      }));
-
-      return {
-        profile: userProfile ?? {
-          id: 0,
-          name: "No profile yet",
-          bio: "Run migrations first",
-          avatarUrl: "",
-          skills: [],
-        },
-        categories: categoriesWithLinks,
-      };
-    } catch (err) {
-      if (isMissingTableError(err)) {
-        return {
-          profile: {
-            id: 0,
-            name: "DB not migrated",
-            bio: "Please set DATABASE_URL and run drizzle push",
-            avatarUrl: "",
-            skills: [],
-          },
-          categories: [],
-        };
-      }
-      throw err;
-    }
+    return this.data;
   }
 }
 
-export const storage = new DatabaseStorage();
+/**
+ * Export storage dùng chung cho routes
+ */
+export const storage: IStorage = new MemoryStorage();
