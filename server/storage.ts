@@ -7,80 +7,44 @@ export interface IStorage {
   seedData(): Promise<void>;
 }
 
-/**
- * Postgres error code:
- * 42P01 = undefined_table (bảng chưa tồn tại)
- */
-function isMissingTableError(err: any): boolean {
-  const code = err?.code;
-  const msg = String(err?.message ?? "");
-  return code === "42P01" || msg.includes("does not exist") || msg.includes("undefined_table");
-}
-
-const EMPTY_PROFILE: BioData["profile"] = {
-  id: 0,
-  name: "",
-  bio: "",
-  avatarUrl: "",
-  skills: [],
-};
-
 export class DatabaseStorage implements IStorage {
-  async getBioData(): Promise<BioData> {
-    try {
-      const [userProfile] = await db.select().from(profile);
-      const allCategories = await db
-        .select()
-        .from(categories)
-        .orderBy(asc(categories.order));
-
-      const allLinks = await db.select().from(links).orderBy(asc(links.order));
-
-      // Combine categories and links
-      const categoriesWithLinks = allCategories.map((cat) => ({
-        ...cat,
-        links: allLinks.filter((link) => link.categoryId === cat.id),
-      }));
-
-      // Return default empty profile if none exists
-      return {
-        profile: userProfile || EMPTY_PROFILE,
-        categories: categoriesWithLinks,
-      };
-    } catch (err) {
-      // Nếu DB chưa migrate (chưa có bảng), đừng để app crash
-      if (isMissingTableError(err)) {
-        return {
-          profile: EMPTY_PROFILE,
-          categories: [],
-        };
-      }
-      throw err;
-    }
-  }
-
+  /**
+   * Seed nếu DB đang rỗng.
+   * - Tránh tình trạng web chạy nhưng thiếu chức năng vì categories/links = []
+   */
   async seedData(): Promise<void> {
-    // Nếu DB chưa migrate, query vào bảng sẽ crash → bắt lỗi và bỏ qua
+    // Nếu bảng chưa tồn tại / query lỗi => throw để Render log ra rõ
+    let existing: any[] = [];
     try {
-      const existingProfile = await db.select().from(profile).limit(1);
-      if (existingProfile.length > 0) return;
+      existing = await db.select().from(profile).limit(1);
     } catch (err) {
-      if (isMissingTableError(err)) {
-        // Bảng chưa tồn tại → đợi migrate xong rồi seed sau
-        return;
-      }
+      console.error(
+        "❌ seedData() cannot read table profile. Check drizzle push + DATABASE_URL.",
+        err,
+      );
       throw err;
     }
 
-    // Seed Profile
+    if (existing.length > 0) return;
+
+    console.log("⚙️ Seeding database (profile/categories/links) ...");
+
+    // Seed profile
     await db.insert(profile).values({
       name: "Hà Văn Huấn",
       bio: "Full Stack Developer | Creative Thinker | Game Enthusiast",
       avatarUrl: "https://api.dicebear.com/7.x/avataaars/svg?seed=Felix",
-      skills: ["React", "Node.js", "TypeScript", "UI/UX Design", "Game Dev", "Cloud Architecture"],
+      skills: [
+        "React",
+        "Node.js",
+        "TypeScript",
+        "UI/UX Design",
+        "Game Dev",
+        "Cloud Architecture",
+      ],
     });
 
-    // Seed Categories (5 frames)
+    // Seed categories
     const categoryData = [
       { title: "Personal Projects", icon: "FolderGit2", order: 1 },
       { title: "Social Media", icon: "Share2", order: 2 },
@@ -89,16 +53,19 @@ export class DatabaseStorage implements IStorage {
       { title: "Contact Me", icon: "Mail", order: 5 },
     ];
 
-    const insertedCategories = await db.insert(categories).values(categoryData).returning();
+    const insertedCategories = await db
+      .insert(categories)
+      .values(categoryData)
+      .returning();
 
-    // Seed Links (6 per category)
-    const linkData: Array<{
+    // Seed links (6 link / category)
+    const linkData: {
       categoryId: number;
       title: string;
       url: string;
       icon: string;
       order: number;
-    }> = [];
+    }[] = [];
 
     for (const cat of insertedCategories) {
       for (let i = 1; i <= 6; i++) {
@@ -113,6 +80,32 @@ export class DatabaseStorage implements IStorage {
     }
 
     await db.insert(links).values(linkData);
+
+    console.log("✅ Seed completed");
+  }
+
+  async getBioData(): Promise<BioData> {
+    // Nếu DB rỗng thì tự seed (tránh web thiếu dữ liệu)
+    await this.seedData();
+
+    const [userProfile] = await db.select().from(profile).limit(1);
+
+    const allCategories = await db
+      .select()
+      .from(categories)
+      .orderBy(asc(categories.order));
+
+    const allLinks = await db.select().from(links).orderBy(asc(links.order));
+
+    const categoriesWithLinks = allCategories.map((cat) => ({
+      ...cat,
+      links: allLinks.filter((l) => l.categoryId === cat.id),
+    }));
+
+    return {
+      profile: userProfile!, // sau seed chắc chắn có
+      categories: categoriesWithLinks,
+    };
   }
 }
 
