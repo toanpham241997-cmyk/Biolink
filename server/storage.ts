@@ -2,26 +2,19 @@ import { db } from "./db";
 import { profile, categories, links, type BioData } from "@shared/schema";
 import { asc } from "drizzle-orm";
 
-/**
- * Storage interface
- * (interface CHỈ khai báo hàm, KHÔNG có body)
- */
 export interface IStorage {
   getBioData(): Promise<BioData>;
   seedData(): Promise<void>;
 }
 
 export class DatabaseStorage implements IStorage {
-  /**
-   * Seed database nếu còn trống
-   * Không throw error để tránh làm sập app trên Render
-   */
   async seedData(): Promise<void> {
     try {
       const existing = await db.select().from(profile).limit(1);
       if (existing.length > 0) return;
-    } catch {
-      console.warn("⚠️ Tables not ready, skip seeding");
+    } catch (err) {
+      console.warn("⚠️ Tables not ready or profile table missing, skip seeding");
+      console.warn(err);
       return;
     }
 
@@ -73,6 +66,7 @@ export class DatabaseStorage implements IStorage {
     }
 
     await db.insert(links).values(linkData);
+
     console.log("✅ Seed done");
   }
 
@@ -86,10 +80,7 @@ export class DatabaseStorage implements IStorage {
       .from(categories)
       .orderBy(asc(categories.order));
 
-    const allLinks = await db
-      .select()
-      .from(links)
-      .orderBy(asc(links.order));
+    const allLinks = await db.select().from(links).orderBy(asc(links.order));
 
     return {
       profile: userProfile || {
@@ -107,4 +98,5 @@ export class DatabaseStorage implements IStorage {
   }
 }
 
-export const storage = new DatabaseStorage();w DatabaseStorage();
+// ✅ DÒNG NÀY PHẢI 1 DÒNG DUY NHẤT
+export const storage = new DatabaseStorage();
