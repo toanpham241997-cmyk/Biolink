@@ -8,15 +8,12 @@ export async function registerRoutes(
   app: Express,
 ): Promise<Server> {
 
-  // ⚠️ Seed nhưng KHÔNG được làm sập server
-  storage.seedData().catch((err) => {
-    console.error("⚠️ Seed skipped / failed:", err.message);
-  });
-
+  // Health check (Render rất thích endpoint này)
   app.get("/api/health", (_req, res) => {
     res.json({ ok: true });
   });
 
+  // API chính cho frontend
   app.get(api.bio.get.path, async (_req, res, next) => {
     try {
       const data = await storage.getBioData();
