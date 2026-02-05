@@ -131,7 +131,13 @@ export default function Home() {
             </TabsContent>
           </div>
         </Tabs>
-     <ContactCard />
+     <motion.div
+  initial={{ opacity: 0, y: 20 }}
+  animate={{ opacity: 1, y: 0 }}
+  transition={{ delay: 0.3 }}
+>
+  <ContactCard />
+</motion.div>
 
         <div className="mt-12 pt-8 border-t border-primary/5 text-center text-muted-foreground text-sm font-medium">
           <p>Built with 💖 using React & Tailwind.</p>
