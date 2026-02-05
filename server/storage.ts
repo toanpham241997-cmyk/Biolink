@@ -29,32 +29,30 @@ export class DatabaseStorage implements IStorage {
    * - Upsert-ish (tránh trùng)
    * - Không phụ thuộc thứ tự restart của Render
    */
-  async seedData(): Promise<void> {
-  let existing: any[] = [];
+import { db } from "./db";
+import { profile, categories, links, type BioData } from "@shared/schema";
+import { asc } from "drizzle-orm";
 
-  try {
-    existing = await db.select().from(profile).limit(1);
-  } catch (err: any) {
-    // ⛔ Bảng chưa tồn tại → drizzle chưa push → bỏ seed
-    console.warn(
-      "⚠️ seedData skipped: table 'profile' does not exist yet. Run drizzle-kit push first.",
-    );
-    return;
-  }
-
-  if (existing.length > 0) {
-    console.log("✅ seedData skipped (already seeded)");
-    return;
-  }
-
-  console.log("🌱 Seeding database...");
-
-  // --- seed như bạn đã viết ---
+export interface IStorage {
+  getBioData(): Promise<BioData>;
+  seedData(): Promise<void>;
 }
 
-    console.log("🌱 seedData(): seeding profile/categories/links...");
+export class DatabaseStorage implements IStorage {
+  async seedData(): Promise<void> {
+    // Nếu bảng chưa tồn tại (chưa drizzle push) thì bỏ qua seed để không làm sập app
+    try {
+      const existing = await db.select().from(profile).limit(1);
+      if (existing.length > 0) return;
+    } catch (err: any) {
+      console.warn(
+        "⚠️ seedData(): tables not ready (run drizzle-kit push / check DATABASE_URL). Skipping seed.",
+      );
+      return;
+    }
 
-    // 2) Seed profile (1 record)
+    console.log("⚙️ Seeding database (profile/categories/links) ...");
+
     await db.insert(profile).values({
       name: "Hà Văn Huấn",
       bio: "Full Stack Developer | Creative Thinker | Game Enthusiast",
@@ -69,8 +67,7 @@ export class DatabaseStorage implements IStorage {
       ],
     });
 
-    // 3) Seed categories
-    const categoryData: NewCategory[] = [
+    const categoryData = [
       { title: "Personal Projects", icon: "FolderGit2", order: 1 },
       { title: "Social Media", icon: "Share2", order: 2 },
       { title: "My Tools", icon: "Wrench", order: 3 },
@@ -78,14 +75,19 @@ export class DatabaseStorage implements IStorage {
       { title: "Contact Me", icon: "Mail", order: 5 },
     ];
 
-    // Insert categories và lấy lại id
     const insertedCategories = await db
       .insert(categories)
       .values(categoryData)
-      .returning({ id: categories.id, title: categories.title });
+      .returning();
 
-    // 4) Seed links
-    const linkData: NewLink[] = [];
+    const linkData: {
+      categoryId: number;
+      title: string;
+      url: string;
+      icon: string;
+      order: number;
+    }[] = [];
+
     for (const cat of insertedCategories) {
       for (let i = 1; i <= 6; i++) {
         linkData.push({
@@ -98,28 +100,16 @@ export class DatabaseStorage implements IStorage {
       }
     }
 
-    if (linkData.length > 0) {
-      await db.insert(links).values(linkData);
-    }
+    await db.insert(links).values(linkData);
 
-    console.log("✅ seedData(): completed");
+    console.log("✅ Seed completed");
   }
 
-  /**
-   * Lấy BioData để hiển thị ngoài web
-   * - KHÔNG seed ở đây (đúng kiến trúc + tránh race-condition)
-   */
   async getBioData(): Promise<BioData> {
-    const [userProfile] = await db.select().from(profile).limit(1);
+    // Tự seed nếu DB rỗng (nhưng seedData đã an toàn, không làm sập app)
+    await this.seedData();
 
-    // Nếu bạn muốn fail rõ ràng thay vì trả rỗng
-    if (!userProfile) {
-      // gợi ý: hãy gọi seedData() khi server start
-      return {
-        profile: { id: 0, name: "", bio: "", avatarUrl: "", skills: [] },
-        categories: [],
-      };
-    }
+    const [userProfile] = await db.select().from(profile).limit(1);
 
     const allCategories = await db
       .select()
@@ -134,10 +124,16 @@ export class DatabaseStorage implements IStorage {
     }));
 
     return {
-      profile: userProfile,
+      profile: userProfile || {
+        id: 0,
+        name: "",
+        bio: "",
+        avatarUrl: "",
+        skills: [],
+      },
       categories: categoriesWithLinks,
     };
   }
 }
 
-export const storage = new DatabaseStorage();
+export const storage = new DatabaseStorage();w DatabaseStorage();
