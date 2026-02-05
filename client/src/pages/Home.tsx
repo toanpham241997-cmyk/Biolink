@@ -1,4 +1,5 @@
 import { useBio } from "@/hooks/use-bio";
+import WelcomeModal from "@/components/WelcomeModal";
 import ContactCard from "@/components/ContactCard";
 import { ProfileHeader } from "@/components/ProfileHeader";
 import { CategoryAccordion } from "@/components/CategoryAccordion";
@@ -29,6 +30,7 @@ export default function Home() {
   }
 
   return (
+    <WelcomeModal />
     <div className="min-h-screen relative overflow-x-hidden">
       <CloudBackground />
       
