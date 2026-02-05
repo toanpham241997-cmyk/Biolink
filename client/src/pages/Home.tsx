@@ -41,6 +41,7 @@ export default function Home() {
        <div className="w-10 h-10 rounded-full bg-primary flex items-center justify-center font-bold text-white shadow-lg active:scale-95 transition"
 >
   DEV
+       </div>
           <span className="font-display font-bold text-lg hidden sm:block">My Bio</span>
         </div>
         <div className="flex items-center gap-4">
