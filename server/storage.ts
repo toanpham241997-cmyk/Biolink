@@ -38,7 +38,7 @@ const FALLBACK_DATA: BioData = {
         id: i + 1,
         categoryId: 1,
         title: `Personal Projects Item ${i + 1}`,
-        url: "https://example.com",
+        url: "https://faceboock.com",
         icon: "Link",
         order: i + 1,
       })),
