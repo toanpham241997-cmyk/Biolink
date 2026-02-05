@@ -1,57 +1,31 @@
-// server/storage.ts
-import { db } from "./db";
-import { profile, categories, links, type BioData } from "@shared/schema";
-import { asc, eq } from "drizzle-orm";
-
-export interface IStorage {
-  getBioData(): Promise<BioData>;
-  seedData(): Promise<void>;
-}
-
-type NewCategory = {
-  title: string;
-  icon: string;
-  order: number;
-};
-
-type NewLink = {
-  categoryId: number;
-  title: string;
-  url: string;
-  icon: string;
-  order: number;
-};
-
-export class DatabaseStorage implements IStorage {
-  /**
-   * Seed an toàn:
-   * - Chỉ seed khi profile chưa có dữ liệu
-   * - Upsert-ish (tránh trùng)
-   * - Không phụ thuộc thứ tự restart của Render
-   */
 import { db } from "./db";
 import { profile, categories, links, type BioData } from "@shared/schema";
 import { asc } from "drizzle-orm";
 
+/**
+ * Storage interface
+ * (interface CHỈ khai báo hàm, KHÔNG có body)
+ */
 export interface IStorage {
   getBioData(): Promise<BioData>;
   seedData(): Promise<void>;
 }
 
 export class DatabaseStorage implements IStorage {
+  /**
+   * Seed database nếu còn trống
+   * Không throw error để tránh làm sập app trên Render
+   */
   async seedData(): Promise<void> {
-    // Nếu bảng chưa tồn tại (chưa drizzle push) thì bỏ qua seed để không làm sập app
     try {
       const existing = await db.select().from(profile).limit(1);
       if (existing.length > 0) return;
-    } catch (err: any) {
-      console.warn(
-        "⚠️ seedData(): tables not ready (run drizzle-kit push / check DATABASE_URL). Skipping seed.",
-      );
+    } catch {
+      console.warn("⚠️ Tables not ready, skip seeding");
       return;
     }
 
-    console.log("⚙️ Seeding database (profile/categories/links) ...");
+    console.log("⚙️ Seeding database...");
 
     await db.insert(profile).values({
       name: "Hà Văn Huấn",
@@ -67,17 +41,15 @@ export class DatabaseStorage implements IStorage {
       ],
     });
 
-    const categoryData = [
-      { title: "Personal Projects", icon: "FolderGit2", order: 1 },
-      { title: "Social Media", icon: "Share2", order: 2 },
-      { title: "My Tools", icon: "Wrench", order: 3 },
-      { title: "Favorite Games", icon: "Gamepad2", order: 4 },
-      { title: "Contact Me", icon: "Mail", order: 5 },
-    ];
-
     const insertedCategories = await db
       .insert(categories)
-      .values(categoryData)
+      .values([
+        { title: "Personal Projects", icon: "FolderGit2", order: 1 },
+        { title: "Social Media", icon: "Share2", order: 2 },
+        { title: "My Tools", icon: "Wrench", order: 3 },
+        { title: "Favorite Games", icon: "Gamepad2", order: 4 },
+        { title: "Contact Me", icon: "Mail", order: 5 },
+      ])
       .returning();
 
     const linkData: {
@@ -101,12 +73,10 @@ export class DatabaseStorage implements IStorage {
     }
 
     await db.insert(links).values(linkData);
-
-    console.log("✅ Seed completed");
+    console.log("✅ Seed done");
   }
 
   async getBioData(): Promise<BioData> {
-    // Tự seed nếu DB rỗng (nhưng seedData đã an toàn, không làm sập app)
     await this.seedData();
 
     const [userProfile] = await db.select().from(profile).limit(1);
@@ -116,12 +86,10 @@ export class DatabaseStorage implements IStorage {
       .from(categories)
       .orderBy(asc(categories.order));
 
-    const allLinks = await db.select().from(links).orderBy(asc(links.order));
-
-    const categoriesWithLinks = allCategories.map((cat) => ({
-      ...cat,
-      links: allLinks.filter((l) => l.categoryId === cat.id),
-    }));
+    const allLinks = await db
+      .select()
+      .from(links)
+      .orderBy(asc(links.order));
 
     return {
       profile: userProfile || {
@@ -131,7 +99,10 @@ export class DatabaseStorage implements IStorage {
         avatarUrl: "",
         skills: [],
       },
-      categories: categoriesWithLinks,
+      categories: allCategories.map((cat) => ({
+        ...cat,
+        links: allLinks.filter((l) => l.categoryId === cat.id),
+      })),
     };
   }
 }
