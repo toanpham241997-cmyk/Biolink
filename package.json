@@ -6,7 +6,7 @@
   "scripts": {
     "dev": "NODE_ENV=development tsx server/index.ts",
     "build": "vite build",
-    "render-build": "npm run db:push && vite build",
+    "render-build": "drizzle-kit push && vite build",
     "start": "NODE_ENV=production tsx server/index.ts",
     "db:push": "drizzle-kit push",
     "check": "tsc"
