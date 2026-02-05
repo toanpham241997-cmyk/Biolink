@@ -2,7 +2,7 @@ import { useMemo, useState } from "react";
 import { motion } from "framer-motion";
 import * as Icons from "lucide-react";
 
-const CONTACT_EMAIL = "yourmail@gmail.com"; // đổi email của bạn ở đây
+const CONTACT_EMAIL = "lehuanha1@gmail.com"; // đổi email của bạn ở đây
 
 export default function ContactCard() {
   const [name, setName] = useState("");
