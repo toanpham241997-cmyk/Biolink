@@ -1,22 +1,28 @@
 import type { Express, Request, Response, NextFunction } from "express";
 import type { Server } from "http";
+import OpenAI from "openai";
+
 import { storage } from "./storage";
 import { api } from "@shared/routes";
-import OpenAI from "openai"; // 👈 thêm
 
+// Khởi tạo OpenAI client (chỉ cần 1 lần)
 const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY, // 👈 set trên Render
+  apiKey: process.env.OPENAI_API_KEY, // set trên Render
 });
+
+// Helper: trả lỗi gọn gàng
+function sendError(res: Response, status: number, message: string) {
+  return res.status(status).json({ ok: false, error: message });
+}
 
 export async function registerRoutes(
   httpServer: Server,
   app: Express,
 ): Promise<Server> {
-
-  // ================= HEALTH CHECK =================
+  // ===================== HEALTH CHECK =====================
   app.get("/api/health", (_req, res) => res.json({ ok: true }));
 
-  // ================= BIO API =================
+  // ===================== BIO API =====================
   app.get(
     api.bio.get.path,
     async (_req: Request, res: Response, next: NextFunction) => {
@@ -26,32 +32,52 @@ export async function registerRoutes(
       } catch (err) {
         next(err);
       }
-    }
+    },
   );
 
-  // ================= CHATBOT AI API =================
+  // ===================== CHATBOT API =====================
+  // Client sẽ POST JSON: { message: "..." }
   app.post(
     "/api/chat",
     async (req: Request, res: Response, next: NextFunction) => {
       try {
-        const { message } = req.body;
-
-        if (!message) {
-          return res.status(400).json({ error: "Missing message" });
+        // Check API key
+        if (!process.env.OPENAI_API_KEY) {
+          return sendError(res, 500, "Thiếu OPENAI_API_KEY trên server (Render Environment).");
         }
 
-        const response = await openai.responses.create({
-          model: "gpt-5-mini",
-          input: message,
+        const message = (req.body?.message ?? "").toString().trim();
+
+        if (!message) {
+          return sendError(res, 400, "Missing message");
+        }
+
+        // ✅ Cách ổn định, dễ dùng: Chat Completions
+        const completion = await openai.chat.completions.create({
+          model: "gpt-4o-mini",
+          messages: [
+            {
+              role: "system",
+              content:
+                "Bạn là Bot AI thân thiện. Trả lời ngắn gọn, rõ ràng, tiếng Việt là chính.",
+            },
+            { role: "user", content: message },
+          ],
+          temperature: 0.7,
         });
 
-        res.json({
-          reply: response.output_text || "",
+        const reply = completion.choices?.[0]?.message?.content?.trim() ?? "";
+
+        return res.json({
+          ok: true,
+          reply: reply || "Mình chưa nhận được nội dung trả lời, bạn thử lại nhé.",
         });
       } catch (err) {
+        // Nếu muốn log chi tiết:
+        console.error("❌ /api/chat error:", err);
         next(err);
       }
-    }
+    },
   );
 
   return httpServer;
