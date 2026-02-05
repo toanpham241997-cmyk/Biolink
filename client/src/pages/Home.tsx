@@ -33,15 +33,12 @@ export default function Home() {
     <>
     <WelcomeModal />
     <div className="min-h-screen relative overflow-x-hidden">
-    <div className="min-h-screen relative overflow-x-hidden">
       <CloudBackground />
       
       {/* Header */}
       <header className="fixed top-0 left-0 right-0 z-50 px-6 py-4 flex justify-between items-center backdrop-blur-sm bg-white/10 border-b border-white/20">
         <div className="flex items-center gap-3">
-          <button
-  onClick={() => setIsMenuOpen(true)}
-  className="w-10 h-10 rounded-full bg-primary flex items-center justify-center font-bold text-white shadow-lg active:scale-95 transition"
+       <div className="w-10 h-10 rounded-full bg-primary flex items-center justify-center font-bold text-white shadow-lg active:scale-95 transition"
 >
   DEV
 </button>
@@ -153,5 +150,6 @@ export default function Home() {
     </div>
   </div>
     </>
+    
   );
 }
