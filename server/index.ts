@@ -1,8 +1,10 @@
 import express, { type Request, Response, NextFunction } from "express";
-import { registerRoutes } from "./routes";
 import { createServer } from "http";
 import path from "path";
 import fs from "fs";
+
+import { registerRoutes } from "./routes";
+import { storage } from "./storage";
 
 const app = express();
 const httpServer = createServer(app);
@@ -13,6 +15,7 @@ declare module "http" {
   }
 }
 
+// Body parsing
 app.use(
   express.json({
     verify: (req, _res, buf) => {
@@ -20,7 +23,6 @@ app.use(
     },
   }),
 );
-
 app.use(express.urlencoded({ extended: false }));
 
 export function log(message: string, source = "express") {
@@ -34,10 +36,11 @@ export function log(message: string, source = "express") {
   console.log(`${formattedTime} [${source}] ${message}`);
 }
 
+// API logger (chỉ log /api)
 app.use((req, res, next) => {
   const start = Date.now();
   const reqPath = req.path;
-  let capturedJsonResponse: Record<string, any> | undefined = undefined;
+  let capturedJsonResponse: Record<string, any> | undefined;
 
   const originalResJson = res.json.bind(res);
   res.json = function (bodyJson: any, ...args: any[]) {
@@ -46,14 +49,12 @@ app.use((req, res, next) => {
   };
 
   res.on("finish", () => {
+    if (!reqPath.startsWith("/api")) return;
     const duration = Date.now() - start;
-    if (reqPath.startsWith("/api")) {
-      let logLine = `${req.method} ${reqPath} ${res.statusCode} in ${duration}ms`;
-      if (capturedJsonResponse) {
-        logLine += ` :: ${JSON.stringify(capturedJsonResponse)}`;
-      }
-      log(logLine);
-    }
+
+    let logLine = `${req.method} ${reqPath} ${res.statusCode} in ${duration}ms`;
+    if (capturedJsonResponse) logLine += ` :: ${JSON.stringify(capturedJsonResponse)}`;
+    log(logLine);
   });
 
   next();
@@ -76,36 +77,42 @@ function serveStaticProd(app: express.Express) {
   // SPA fallback: không đụng /api
   app.get("*", (req, res, next) => {
     if (req.path.startsWith("/api")) return next();
-    res.sendFile(indexHtml);
+    return res.sendFile(indexHtml);
   });
 }
 
 (async () => {
+  // ✅ Seed DB trước khi đăng ký routes (để /api/bio có data)
+  try {
+    await storage.seedData();
+    log("✅ Database seeded", "db");
+  } catch (err) {
+    console.error("❌ Seed failed:", err);
+  }
+
+  // Routes
   await registerRoutes(httpServer, app);
 
   // Error handler (để sau routes)
   app.use((err: any, _req: Request, res: Response, next: NextFunction) => {
-    const status = err.status || err.statusCode || 500;
-    const message = err.message || "Internal Server Error";
+    const status = err?.status || err?.statusCode || 500;
+    const message = err?.message || "Internal Server Error";
 
     console.error("Internal Server Error:", err);
 
-    if (res.headersSent) {
-      return next(err);
-    }
-
+    if (res.headersSent) return next(err);
     return res.status(status).json({ message });
   });
 
   // Dev = Vite HMR, Prod = serve dist/public
   if (process.env.NODE_ENV === "production") {
-    // dùng bản serve static chắc chắn đúng dist/public
     serveStaticProd(app);
   } else {
     const { setupVite } = await import("./vite");
     await setupVite(httpServer, app);
   }
 
+  // Listen
   const port = parseInt(process.env.PORT || "5000", 10);
   httpServer.listen(
     {
