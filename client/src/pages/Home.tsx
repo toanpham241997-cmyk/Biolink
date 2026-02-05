@@ -1,4 +1,5 @@
 import { useBio } from "@/hooks/use-bio";
+import { Link } from "wouter";
 import { useEffect, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { Image, Code2, Bot, X } from "lucide-react";
@@ -112,18 +113,22 @@ const openLink = (url: string) => {
 
         {/* Buttons */}
         <div className="p-5 space-y-3">
-          <button
-            onClick={() => openLink("https://upanhlaylink.com/")} // đổi link theo bạn
-            className="w-full flex items-center gap-3 p-4 rounded-2xl bg-white/70 dark:bg-card/60 game-border hover:scale-[1.02] active:scale-[0.99] transition"
-          >
-            <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center">
-              <Image className="w-5 h-5 text-primary" />
-            </div>
-            <div className="text-left">
-              <p className="font-bold">Up ảnh / Lấy link</p>
-              <p className="text-xs text-muted-foreground">Upload ảnh & copy link</p>
-            </div>
-          </button>
+          <Link
+  href="/upload"
+  onClick={() => setIsMenuOpen(false)}
+  className="w-full flex items-center gap-3 p-4 rounded-2xl bg-white/70 dark:bg-card/60 game-border hover:scale-[1.02] active:scale-[0.99] transition"
+>
+  <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center">
+    <Image className="w-5 h-5 text-primary" />
+  </div>
+
+  <div className="text-left">
+    <p className="font-bold">Up ảnh / Lấy link</p>
+    <p className="text-xs text-muted-foreground">
+      Upload ảnh & copy link
+    </p>
+  </div>
+</Link>
 
           <button
             onClick={() => openLink("https://render.com/")} // hoặc link “Coder free” của bạn
