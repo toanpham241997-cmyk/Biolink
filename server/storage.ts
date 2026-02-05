@@ -30,23 +30,27 @@ export class DatabaseStorage implements IStorage {
    * - Không phụ thuộc thứ tự restart của Render
    */
   async seedData(): Promise<void> {
-    // 1) Kiểm tra bảng có tồn tại/migrate chưa
-    let existingProfile: { id: number }[] = [];
-    try {
-      existingProfile = await db.select({ id: profile.id }).from(profile).limit(1);
-    } catch (err) {
-      console.error(
-        "❌ seedData(): Cannot read table 'profile'. Bạn cần chạy migrate/drizzle push và cấu hình DATABASE_URL đúng.",
-        err,
-      );
-      throw err;
-    }
+  let existing: any[] = [];
 
-    // Nếu đã có profile => coi như DB đã seed rồi
-    if (existingProfile.length > 0) {
-      console.log("✅ seedData(): skipped (already seeded)");
-      return;
-    }
+  try {
+    existing = await db.select().from(profile).limit(1);
+  } catch (err: any) {
+    // ⛔ Bảng chưa tồn tại → drizzle chưa push → bỏ seed
+    console.warn(
+      "⚠️ seedData skipped: table 'profile' does not exist yet. Run drizzle-kit push first.",
+    );
+    return;
+  }
+
+  if (existing.length > 0) {
+    console.log("✅ seedData skipped (already seeded)");
+    return;
+  }
+
+  console.log("🌱 Seeding database...");
+
+  // --- seed như bạn đã viết ---
+}
 
     console.log("🌱 seedData(): seeding profile/categories/links...");
 
