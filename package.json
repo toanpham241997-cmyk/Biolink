@@ -8,6 +8,7 @@
   "build": "tsx script/build.ts",
   "start": "NODE_ENV=production tsx server/index.ts",
   "check": "tsc",
+  "render-build": "npm run build && npm run db:push",
   "db:push": "drizzle-kit push"
   },
   "dependencies": {
