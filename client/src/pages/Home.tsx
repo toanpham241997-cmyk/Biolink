@@ -1,4 +1,5 @@
 import { useBio } from "@/hooks/use-bio";
+import ContactCard from "@/components/ContactCard";
 import { ProfileHeader } from "@/components/ProfileHeader";
 import { CategoryAccordion } from "@/components/CategoryAccordion";
 import { ThemeToggle } from "@/components/ThemeToggle";
@@ -130,6 +131,7 @@ export default function Home() {
             </TabsContent>
           </div>
         </Tabs>
+     <ContactCard />
 
         <div className="mt-12 pt-8 border-t border-primary/5 text-center text-muted-foreground text-sm font-medium">
           <p>Built with 💖 using React & Tailwind.</p>
