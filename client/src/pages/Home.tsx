@@ -1,4 +1,7 @@
 import { useBio } from "@/hooks/use-bio";
+import { useEffect, useState } from "react";
+import { AnimatePresence, motion } from "framer-motion";
+import { Image, Code2, Bot, X } from "lucide-react";
 import WelcomeModal from "@/components/WelcomeModal";
 import ContactCard from "@/components/ContactCard";
 import { ProfileHeader } from "@/components/ProfileHeader";
@@ -12,6 +15,18 @@ import { Card, CardContent } from "@/components/ui/card";
 
 export default function Home() {
   const { data, isLoading, error } = useBio();
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
+
+useEffect(() => {
+  document.body.style.overflow = isMenuOpen ? "hidden" : "auto";
+  return () => {
+    document.body.style.overflow = "auto";
+  };
+}, [isMenuOpen]);
+
+const openLink = (url: string) => {
+  window.open(url, "_blank", "noopener,noreferrer");
+};
   
   if (isLoading) {
     return (
@@ -38,10 +53,15 @@ export default function Home() {
       {/* Header */}
       <header className="fixed top-0 left-0 right-0 z-50 px-6 py-4 flex justify-between items-center backdrop-blur-sm bg-white/10 border-b border-white/20">
         <div className="flex items-center gap-3">
-       <div className="w-10 h-10 rounded-full bg-primary flex items-center justify-center font-bold text-white shadow-lg active:scale-95 transition"
+       <div
+  role="button"
+  tabIndex={0}
+  onClick={() => setIsMenuOpen(true)}
+  onKeyDown={(e) => e.key === "Enter" && setIsMenuOpen(true)}
+  className="w-10 h-10 rounded-full bg-primary flex items-center justify-center font-bold text-white shadow-lg cursor-pointer active:scale-95 transition select-none"
 >
   DEV
-       </div>
+</div>
           <span className="font-display font-bold text-lg hidden sm:block">My Bio</span>
         </div>
         <div className="flex items-center gap-4">
@@ -49,6 +69,100 @@ export default function Home() {
           <ThemeToggle />
         </div>
       </header>
+      <AnimatePresence>
+  {isMenuOpen && (
+    <>
+      {/* Overlay */}
+      <motion.div
+        className="fixed inset-0 z-[60] bg-black/40 backdrop-blur-sm"
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        exit={{ opacity: 0 }}
+        onClick={() => setIsMenuOpen(false)}
+      />
+
+      {/* Drawer */}
+      <motion.aside
+        className="fixed top-0 left-0 z-[70] h-full w-[86%] max-w-sm bg-white dark:bg-card game-border shadow-2xl"
+        initial={{ x: "-110%" }}
+        animate={{ x: 0 }}
+        exit={{ x: "-110%" }}
+        transition={{ type: "spring", stiffness: 260, damping: 28 }}
+      >
+        {/* Header drawer */}
+        <div className="flex items-center justify-between px-5 py-4 border-b border-primary/10">
+          <div className="flex items-center gap-3">
+            <div className="w-9 h-9 rounded-full bg-primary text-white flex items-center justify-center font-bold shadow">
+              D
+            </div>
+            <div className="leading-tight">
+              <p className="font-bold">Menu</p>
+              <p className="text-xs text-muted-foreground">Chọn chức năng</p>
+            </div>
+          </div>
+
+          <button
+            onClick={() => setIsMenuOpen(false)}
+            className="w-9 h-9 rounded-xl bg-primary/10 hover:bg-primary/20 flex items-center justify-center transition"
+            aria-label="Close menu"
+          >
+            <X className="w-5 h-5" />
+          </button>
+        </div>
+
+        {/* Buttons */}
+        <div className="p-5 space-y-3">
+          <button
+            onClick={() => openLink("https://upanhlaylink.com/")} // đổi link theo bạn
+            className="w-full flex items-center gap-3 p-4 rounded-2xl bg-white/70 dark:bg-card/60 game-border hover:scale-[1.02] active:scale-[0.99] transition"
+          >
+            <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center">
+              <Image className="w-5 h-5 text-primary" />
+            </div>
+            <div className="text-left">
+              <p className="font-bold">Up ảnh / Lấy link</p>
+              <p className="text-xs text-muted-foreground">Upload ảnh & copy link</p>
+            </div>
+          </button>
+
+          <button
+            onClick={() => openLink("https://render.com/")} // hoặc link “Coder free” của bạn
+            className="w-full flex items-center gap-3 p-4 rounded-2xl bg-white/70 dark:bg-card/60 game-border hover:scale-[1.02] active:scale-[0.99] transition"
+          >
+            <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center">
+              <Code2 className="w-5 h-5 text-primary" />
+            </div>
+            <div className="text-left">
+              <p className="font-bold">Coder free</p>
+              <p className="text-xs text-muted-foreground">Tool / hosting miễn phí</p>
+            </div>
+          </button>
+
+          <button
+            onClick={() => openLink("https://chat.openai.com/")} // hoặc route chatbot của bạn
+            className="w-full flex items-center gap-3 p-4 rounded-2xl bg-white/70 dark:bg-card/60 game-border hover:scale-[1.02] active:scale-[0.99] transition"
+          >
+            <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center">
+              <Bot className="w-5 h-5 text-primary" />
+            </div>
+            <div className="text-left">
+              <p className="font-bold">Chatbot</p>
+              <p className="text-xs text-muted-foreground">Trợ lý AI / chat</p>
+            </div>
+          </button>
+
+          {/* Optional: nút đóng */}
+          <button
+            onClick={() => setIsMenuOpen(false)}
+            className="w-full mt-2 p-3 rounded-2xl bg-primary text-white font-bold shadow hover:opacity-95 active:scale-[0.99] transition"
+          >
+            Đóng menu
+          </button>
+        </div>
+      </motion.aside>
+    </>
+  )}
+</AnimatePresence>
       
       {/* Main Content */}
       <main className="pt-24 pb-16 px-4 sm:px-6 max-w-2xl mx-auto flex flex-col items-center gap-8">
