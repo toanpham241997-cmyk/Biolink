@@ -16,7 +16,7 @@ function openLinkSafe(url: string) {
   if (!finalUrl) return;
 
   const w = window.open(finalUrl, "_blank", "noopener,noreferrer");
-  if (!w) window.location.href = finalUrl;
+  if (!w) window.location.href = finalUrl; // fallback mobile
 }
 
 async function safeCopy(text: string) {
@@ -54,9 +54,10 @@ export default function OrderDetailPage() {
     );
   }
 
+  const finalLink = normalizeUrl(item.downloadUrl);
+
   return (
     <div className="min-h-screen px-4 pt-24 pb-16 max-w-3xl mx-auto">
-      {/* Header */}
       <div className="flex items-center justify-between gap-3 mb-6">
         <Link
           href="/orders"
@@ -78,7 +79,6 @@ export default function OrderDetailPage() {
       <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }}>
         <Card className="game-border bg-white/70 dark:bg-card/60 backdrop-blur-sm overflow-hidden rounded-[28px]">
           <CardContent className="p-0">
-            {/* Banner */}
             <div className="relative">
               <div className="aspect-[16/9] w-full overflow-hidden">
                 <img
@@ -105,7 +105,6 @@ export default function OrderDetailPage() {
               </div>
             </div>
 
-            {/* Content */}
             <div className="p-5 space-y-3">
               <h1 className="text-2xl font-extrabold">{item.title}</h1>
 
@@ -115,7 +114,6 @@ export default function OrderDetailPage() {
                 </p>
               </div>
 
-              {/* Giá */}
               <div className="flex items-end gap-2">
                 <p className="text-primary font-extrabold text-2xl leading-none">
                   0₫
@@ -128,27 +126,23 @@ export default function OrderDetailPage() {
                 </span>
               </div>
 
-              {/* Nội dung */}
               <div className="p-4 rounded-[26px] game-border bg-white/80 dark:bg-card/60">
                 <p className="font-extrabold mb-2">Mô tả đơn hàng</p>
                 <p className="text-sm leading-relaxed whitespace-pre-wrap">
                   {item.detail}
                 </p>
 
-                {/* Link hiển thị (để bạn kiểm tra đúng link) */}
                 <div className="mt-3 p-3 rounded-2xl bg-white/70 dark:bg-card/60 game-border">
                   <p className="text-xs text-muted-foreground font-bold mb-1">
                     Link nhận riêng:
                   </p>
-                  <p className="text-xs break-all">
-                    {normalizeUrl(item.downloadUrl)}
-                  </p>
+                  <p className="text-xs break-all">{finalLink}</p>
                 </div>
 
                 <div className="mt-4 grid grid-cols-2 gap-2">
                   <button
                     onClick={async () => {
-                      const ok = await safeCopy(normalizeUrl(item.downloadUrl));
+                      const ok = await safeCopy(finalLink);
                       alert(ok ? "Đã copy link!" : "Copy thất bại (trình duyệt chặn).");
                     }}
                     className="w-full min-h-[48px] inline-flex items-center justify-center gap-2 px-3 py-3 rounded-2xl bg-white/70 dark:bg-card/60 game-border font-extrabold hover:scale-[1.01] active:scale-[0.99] transition"
