@@ -4,9 +4,19 @@ import { ArrowLeft, Download, Copy } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { ORDERS } from "@/pages/Orders";
 
-function openLink(url: string) {
-  if (!url) return;
-  window.open(url, "_blank", "noopener,noreferrer");
+function normalizeUrl(url: string) {
+  const u = (url || "").trim();
+  if (!u) return "";
+  return /^https?:\/\//i.test(u) ? u : `https://${u}`;
+}
+
+// ✅ mở link chắc chắn (popup bị chặn vẫn chuyển trang)
+function openLinkSafe(url: string) {
+  const finalUrl = normalizeUrl(url);
+  if (!finalUrl) return;
+
+  const w = window.open(finalUrl, "_blank", "noopener,noreferrer");
+  if (!w) window.location.href = finalUrl;
 }
 
 async function safeCopy(text: string) {
@@ -57,18 +67,18 @@ export default function OrderDetailPage() {
         </Link>
 
         <button
-          onClick={() => openLink(item.downloadUrl)}
-          className="inline-flex items-center gap-2 px-4 py-2 rounded-2xl bg-primary text-white game-border font-extrabold shadow hover:opacity-95 active:scale-[0.99] transition"
+          onClick={() => openLinkSafe(item.downloadUrl)}
+          className="inline-flex items-center gap-2 px-5 py-3 rounded-2xl bg-primary text-white game-border font-extrabold shadow hover:opacity-95 active:scale-[0.99] transition"
         >
-          <Download className="w-4 h-4" />
+          <Download className="w-5 h-5" />
           Nhận ngay
         </button>
       </div>
 
       <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }}>
-        <Card className="game-border bg-white/70 dark:bg-card/60 backdrop-blur-sm overflow-hidden">
+        <Card className="game-border bg-white/70 dark:bg-card/60 backdrop-blur-sm overflow-hidden rounded-[28px]">
           <CardContent className="p-0">
-            {/* Banner ảnh */}
+            {/* Banner */}
             <div className="relative">
               <div className="aspect-[16/9] w-full overflow-hidden">
                 <img
@@ -78,18 +88,24 @@ export default function OrderDetailPage() {
                 />
               </div>
 
-              {/* Tem cong */}
-              <div className="absolute top-3 left-3">
+              {/* Ribbon vàng chói */}
+              <div className="absolute top-4 left-[-60px] rotate-[-35deg]">
                 <div
-                  className="px-3 py-1 text-[11px] font-extrabold text-white rounded-full shadow-lg bg-primary/90"
-                  style={{ transform: "rotate(-10deg)" }}
+                  className="px-16 py-2 text-[12px] font-extrabold tracking-wide text-black shadow-2xl"
+                  style={{
+                    background:
+                      "linear-gradient(90deg,#FFD700,#FFB000,#FFD700)",
+                    borderRadius: 999,
+                    border: "2px solid rgba(0,0,0,0.14)",
+                    textShadow: "0 1px 0 rgba(255,255,255,0.35)",
+                  }}
                 >
                   FREE DOWNLOAD
                 </div>
               </div>
             </div>
 
-            {/* Nội dung */}
+            {/* Content */}
             <div className="p-5 space-y-3">
               <h1 className="text-2xl font-extrabold">{item.title}</h1>
 
@@ -97,9 +113,9 @@ export default function OrderDetailPage() {
                 <p>
                   ID: <b>#{item.id}</b>
                 </p>
-                {item.meta && <p>{item.meta}</p>}
               </div>
 
+              {/* Giá */}
               <div className="flex items-end gap-2">
                 <p className="text-primary font-extrabold text-2xl leading-none">
                   0₫
@@ -112,40 +128,48 @@ export default function OrderDetailPage() {
                 </span>
               </div>
 
-              <div className="p-4 rounded-3xl game-border bg-white/80 dark:bg-card/60">
-                <p className="font-bold mb-2">Mô tả đơn hàng</p>
+              {/* Nội dung */}
+              <div className="p-4 rounded-[26px] game-border bg-white/80 dark:bg-card/60">
+                <p className="font-extrabold mb-2">Mô tả đơn hàng</p>
                 <p className="text-sm leading-relaxed whitespace-pre-wrap">
-                  {item.desc}
-                  {"\n\n"}• Link tải riêng: {item.downloadUrl}
-                  {"\n"}• Nhấn “Nhận ngay” để mở trang tải trong tab mới.
+                  {item.detail}
                 </p>
 
-                <div className="mt-3 grid grid-cols-2 gap-2">
+                {/* Link hiển thị (để bạn kiểm tra đúng link) */}
+                <div className="mt-3 p-3 rounded-2xl bg-white/70 dark:bg-card/60 game-border">
+                  <p className="text-xs text-muted-foreground font-bold mb-1">
+                    Link nhận riêng:
+                  </p>
+                  <p className="text-xs break-all">
+                    {normalizeUrl(item.downloadUrl)}
+                  </p>
+                </div>
+
+                <div className="mt-4 grid grid-cols-2 gap-2">
                   <button
                     onClick={async () => {
-                      const ok = await safeCopy(item.downloadUrl);
-                      if (!ok) alert("Copy thất bại (trình duyệt chặn).");
-                      else alert("Đã copy link tải!");
+                      const ok = await safeCopy(normalizeUrl(item.downloadUrl));
+                      alert(ok ? "Đã copy link!" : "Copy thất bại (trình duyệt chặn).");
                     }}
-                    className="w-full inline-flex items-center justify-center gap-2 px-3 py-3 rounded-2xl bg-white/70 dark:bg-card/60 game-border font-extrabold hover:scale-[1.01] active:scale-[0.99] transition"
+                    className="w-full min-h-[48px] inline-flex items-center justify-center gap-2 px-3 py-3 rounded-2xl bg-white/70 dark:bg-card/60 game-border font-extrabold hover:scale-[1.01] active:scale-[0.99] transition"
                   >
                     <Copy className="w-4 h-4" />
                     Copy link
                   </button>
 
                   <button
-                    onClick={() => openLink(item.downloadUrl)}
-                    className="w-full inline-flex items-center justify-center gap-2 px-3 py-3 rounded-2xl bg-primary text-white game-border font-extrabold shadow hover:opacity-95 active:scale-[0.99] transition"
+                    onClick={() => openLinkSafe(item.downloadUrl)}
+                    className="w-full min-h-[48px] inline-flex items-center justify-center gap-2 px-3 py-3 rounded-2xl bg-primary text-white game-border font-extrabold shadow hover:opacity-95 active:scale-[0.99] transition"
                   >
                     <Download className="w-4 h-4" />
                     Nhận ngay
                   </button>
                 </div>
-              </div>
 
-              <p className="text-xs text-muted-foreground">
-                Tip: Bạn chỉ cần đổi <b>downloadUrl</b> trong mảng <b>ORDERS</b> là mỗi đơn có link riêng.
-              </p>
+                <p className="mt-3 text-xs text-muted-foreground">
+                  Nếu điện thoại chặn popup, nút “Nhận ngay” sẽ tự chuyển trang thay vì mở tab mới.
+                </p>
+              </div>
             </div>
           </CardContent>
         </Card>
