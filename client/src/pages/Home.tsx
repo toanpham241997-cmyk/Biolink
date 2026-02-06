@@ -127,9 +127,9 @@ const openLink = (url: string) => {
   </div>
 
   <div className="text-left">
-    <p className="font-bold">Up ảnh / Lấy link</p>
+    <p className="font-bold">UPLOAD ẢNH</p>
     <p className="text-xs text-muted-foreground">
-      Upload ảnh & copy link
+      UPLOAD ẢNH LẤY LINK
     </p>
   </div>
 </Link>
@@ -142,8 +142,8 @@ const openLink = (url: string) => {
               <Code2 className="w-5 h-5 text-primary" />
             </div>
             <div className="text-left">
-              <p className="font-bold">Coder free</p>
-              <p className="text-xs text-muted-foreground">Tool / hosting miễn phí</p>
+              <p className="font-bold">SOUCRE FREE</p>
+              <p className="text-xs text-muted-foreground">SOUCRE WEB - TOOLS</p>
             </div>
           </button>
 
@@ -155,8 +155,8 @@ const openLink = (url: string) => {
               <Bot className="w-5 h-5 text-primary" />
             </div>
             <div className="text-left">
-              <p className="font-bold">Chatbot</p>
-              <p className="text-xs text-muted-foreground">Trợ lý AI / chat</p>
+              <p className="font-bold">BOT CHAT</p>
+              <p className="text-xs text-muted-foreground">TRỢ LÍ VẮNG MẶT</p>
             </div>
           </button>
 
@@ -164,12 +164,12 @@ const openLink = (url: string) => {
   onClick={() => navigate("/files")}
   className="w-full flex items-center gap-3 p-4 rounded-2xl bg-white/70 dark:bg-card/60 game-border hover:scale-[1.02] active:scale-[0.99] transition"
 >
-            <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center">
-              <Bot className="w-5 h-5 text-primary" />
-            </div>
+             <div className="w-11 h-11 rounded-xl bg-primary/15 flex items-center justify-center">
+    <FileUp className="w-6 h-6 text-primary" />
+  </div>
             <div className="text-left">
-              <p className="font-bold">up files</p>
-              <p className="text-xs text-muted-foreground">up files lấy link</p>
+              <p className="font-bold">UP FILES / LINK</p>
+              <p className="text-xs text-muted-foreground">LẤY LINK 3S </p>
             </div>
           </button>
 
