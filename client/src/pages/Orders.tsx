@@ -1,136 +1,76 @@
 import { Link } from "wouter";
 import { motion } from "framer-motion";
-import { ArrowLeft, Eye, Download } from "lucide-react";
+import { ArrowLeft } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 
 export type OrderItem = {
-  id: string;
-  title: string;
-  desc: string;
-  image: string;
-  claimUrl: string; // link “Nhận ngay”
-  detailTitle?: string;
-  detailText?: string;
-  guide?: string[];
+  id: string;        // ví dụ: UEU1543362
+  title: string;     // tên đơn hàng
+  desc: string;      // mô tả ngắn
+  image: string;     // ảnh thumbnail
+  downloadUrl: string; // link tải riêng
+  meta?: string;     // ví dụ: "Cấp Prime: Prime 1"
+  badge?: string;    // ví dụ: "FREE"
 };
 
 export const ORDERS: OrderItem[] = [
   {
-    id: "o1",
-    title: "Bio UI Kit",
-    desc: "UI bio phong cách game-like + animation.",
+    id: "UEU1543362",
+    title: "Nick Free Fire tự chọn",
+    desc: "Tặng pack miễn phí • Đầy đủ ảnh • Tải nhanh.",
+    meta: "Cấp Prime: Prime 1",
+    badge: "FREE",
     image:
-      "https://images.unsplash.com/photo-1545239351-1141bd82e8a6?q=80&w=1200&auto=format&fit=crop",
-    claimUrl: "https://render.com/",
-    detailTitle: "Bio UI Kit – Chi tiết",
-    detailText:
-      "Gói UI mẫu gồm layout header, card, menu slide, hiệu ứng framer-motion và các component bio hiện đại.",
-    guide: ["Copy component vào project", "Tuỳ biến màu primary", "Deploy lên Render"],
+      "https://images.unsplash.com/photo-1542751110-97427bbecf20?q=80&w=1200&auto=format&fit=crop",
+    downloadUrl: "https://example.com/download/UEU1543362",
   },
   {
-    id: "o2",
-    title: "Icon Pack",
-    desc: "Icon đẹp cho menu & header.",
+    id: "UEU1502891",
+    title: "Nick Free Fire tự chọn",
+    desc: "Kho đồ đẹp • Nhiều skin • Free tải.",
+    meta: "Cấp Prime: Prime 2",
+    badge: "FREE",
     image:
-      "https://images.unsplash.com/photo-1518779578993-ec3579fee39f?q=80&w=1200&auto=format&fit=crop",
-    claimUrl: "https://lucide.dev/",
-    detailTitle: "Icon Pack – Chi tiết",
-    detailText:
-      "Gợi ý dùng Lucide icons (nhẹ, đẹp, dễ dùng). Bạn có thể thay icon theo nhu cầu.",
-    guide: ["npm i lucide-react", "import icon", "gắn vào button/menu"],
+      "https://images.unsplash.com/photo-1511512578047-dfb367046420?q=80&w=1200&auto=format&fit=crop",
+    downloadUrl: "https://example.com/download/UEU1502891",
   },
   {
-    id: "o3",
-    title: "Landing Sections",
-    desc: "Section sẵn, responsive.",
+    id: "UEU1455786",
+    title: "Nick Free Fire tự chọn",
+    desc: "Full ảnh minh hoạ • Có hướng dẫn nhận.",
+    meta: "Cấp Prime: Prime 3",
+    badge: "FREE",
     image:
-      "https://images.unsplash.com/photo-1521737604893-d14cc237f11d?q=80&w=1200&auto=format&fit=crop",
-    claimUrl: "https://tailwindcss.com/",
+      "https://images.unsplash.com/photo-1526401485004-2fda9f6b2f09?q=80&w=1200&auto=format&fit=crop",
+    downloadUrl: "https://example.com/download/UEU1455786",
   },
   {
-    id: "o4",
-    title: "Motion FX",
-    desc: "Hiệu ứng mượt, dễ gắn vào UI.",
+    id: "UEU1486001",
+    title: "Nick Free Fire tự chọn",
+    desc: "Pack sưu tầm • Tặng kèm preset UI.",
+    meta: "Cấp Prime: Prime 1",
+    badge: "FREE",
     image:
-      "https://images.unsplash.com/photo-1523966211575-eb4a3d7aa3d5?q=80&w=1200&auto=format&fit=crop",
-    claimUrl: "https://www.framer.com/motion/",
+      "https://images.unsplash.com/photo-1507238691740-187a5b1d37b8?q=80&w=1200&auto=format&fit=crop",
+    downloadUrl: "https://example.com/download/UEU1486001",
   },
-  {
-    id: "o5",
-    title: "Card Templates",
-    desc: "Card gọn, đẹp, đồng bộ.",
-    image:
-      "https://images.unsplash.com/photo-1556761175-b413da4baf72?q=80&w=1200&auto=format&fit=crop",
-    claimUrl: "https://ui.shadcn.com/",
-  },
-  {
-    id: "o6",
-    title: "Button System",
-    desc: "Nút chuẩn, không co xấu.",
-    image:
-      "https://images.unsplash.com/photo-1520607162513-77705c0f0d4a?q=80&w=1200&auto=format&fit=crop",
-    claimUrl: "https://tailwindcss.com/",
-  },
-  {
-    id: "o7",
-    title: "Form UI",
-    desc: "Input/textarea/select đẹp.",
-    image:
-      "https://images.unsplash.com/photo-1555066931-4365d14bab8c?q=80&w=1200&auto=format&fit=crop",
-    claimUrl: "https://ui.shadcn.com/docs/components",
-  },
-  {
-    id: "o8",
-    title: "Profile Pack",
-    desc: "Trang profile mẫu.",
-    image:
-      "https://images.unsplash.com/photo-1522202176988-66273c2fd55f?q=80&w=1200&auto=format&fit=crop",
-    claimUrl: "https://render.com/",
-  },
-  {
-    id: "o9",
-    title: "Menu Slide",
-    desc: "Menu trượt mượt + overlay.",
-    image:
-      "https://images.unsplash.com/photo-1518770660439-4636190af475?q=80&w=1200&auto=format&fit=crop",
-    claimUrl: "https://www.framer.com/motion/",
-  },
-  {
-    id: "o10",
-    title: "Chat UI",
-    desc: "Giao diện chat đẹp.",
-    image:
-      "https://images.unsplash.com/photo-1526378722484-bd91ca387e72?q=80&w=1200&auto=format&fit=crop",
-    claimUrl: "/chat",
-    detailText: "Dẫn về trang chat trong app của bạn.",
-  },
-  {
-    id: "o11",
-    title: "Upload ImgBB",
-    desc: "Upload ảnh & copy link.",
-    image:
-      "https://images.unsplash.com/photo-1526498460520-4c246339dccb?q=80&w=1200&auto=format&fit=crop",
-    claimUrl: "/upload",
-    detailText: "Dẫn về trang upload ảnh trong app của bạn.",
-  },
-  {
-    id: "o12",
-    title: "Deploy Render",
-    desc: "Tối ưu deploy nhanh.",
-    image:
-      "https://images.unsplash.com/photo-1519389950473-47ba0277781c?q=80&w=1200&auto=format&fit=crop",
-    claimUrl: "https://render.com/",
-  },
-];
 
-function openLink(url: string) {
-  if (!url) return;
-  if (url.startsWith("/")) {
-    window.location.href = url; // nội bộ
-  } else {
-    window.open(url, "_blank", "noopener,noreferrer");
-  }
-}
+  // Thêm 8 đơn nữa (bạn đổi ảnh/link theo ý)
+  ...Array.from({ length: 8 }).map((_, i) => {
+    const idx = i + 5;
+    const code = `UEU10${(90000 + idx * 123).toString()}`;
+    return {
+      id: code,
+      title: "Nick Free Fire tự chọn",
+      desc: "Free download • Xem chi tiết để nhận link tải riêng.",
+      meta: `Cấp Prime: Prime ${((idx % 3) + 1).toString()}`,
+      badge: "FREE",
+      image:
+        "https://images.unsplash.com/photo-1550745165-9bc0b252726f?q=80&w=1200&auto=format&fit=crop",
+      downloadUrl: `https://example.com/download/${code}`,
+    } as OrderItem;
+  }),
+];
 
 export default function OrdersPage() {
   return (
@@ -145,98 +85,91 @@ export default function OrdersPage() {
           <span className="font-bold">Về Home</span>
         </Link>
 
-        <div className="leading-tight">
+        <div className="leading-tight text-right">
           <p className="font-extrabold text-lg">Coder free</p>
-          <p className="text-xs text-muted-foreground">12 đơn hàng • Free Download</p>
+          <p className="text-xs text-muted-foreground">12 đơn hàng • 0₫</p>
         </div>
       </div>
 
-      {/* Grid */}
+      {/* Grid giống ảnh (2 cột mobile, 3-4 cột desktop) */}
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
         {ORDERS.map((item, idx) => (
           <motion.div
             key={item.id}
-            initial={{ opacity: 0, y: 14 }}
+            initial={{ opacity: 0, y: 12 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.03 * idx }}
+            transition={{ delay: 0.02 * idx }}
           >
-            <Card className="game-border bg-white/60 dark:bg-card/60 backdrop-blur-sm overflow-hidden">
-              <CardContent className="p-0">
-                {/* Image */}
-                <div className="relative">
-                  <div className="aspect-[4/3] w-full overflow-hidden">
-                    <img
-                      src={item.image}
-                      alt={item.title}
-                      className="w-full h-full object-cover"
-                      loading="lazy"
-                    />
-                  </div>
+            {/* ✅ Click toàn bộ card -> qua trang chi tiết */}
+            <Link href={`/orders/${item.id}`} className="block">
+              <Card className="game-border bg-white/70 dark:bg-card/60 backdrop-blur-sm overflow-hidden hover:scale-[1.01] active:scale-[0.99] transition">
+                <CardContent className="p-0">
+                  {/* Thumbnail */}
+                  <div className="relative">
+                    <div className="aspect-[16/10] w-full overflow-hidden">
+                      <img
+                        src={item.image}
+                        alt={item.title}
+                        className="w-full h-full object-cover"
+                        loading="lazy"
+                      />
+                    </div>
 
-                  {/* ✅ Tem cong dán vào ảnh */}
-                  <div className="absolute top-2 left-2">
-                    <div className="relative">
+                    {/* ✅ Tem cong dán góc giống ảnh */}
+                    <div className="absolute top-2 left-2">
                       <div
-                        className="px-3 py-1 text-[11px] font-extrabold text-white rounded-full shadow-lg
-                                   bg-primary/90 backdrop-blur-sm"
-                        style={{
-                          transform: "rotate(-12deg)",
-                        }}
+                        className="px-3 py-1 text-[11px] font-extrabold text-white rounded-full shadow-lg bg-primary/90"
+                        style={{ transform: "rotate(-10deg)" }}
                       >
                         FREE DOWNLOAD
                       </div>
-                      <div
-                        className="absolute -bottom-1 left-2 w-2 h-2 bg-primary/90"
-                        style={{
-                          transform: "rotate(20deg)",
-                          borderRadius: "2px",
-                          filter: "brightness(0.9)",
-                        }}
-                      />
                     </div>
                   </div>
-                </div>
 
-                {/* Body */}
-                <div className="p-3">
-                  <p className="font-extrabold text-[15px] leading-snug line-clamp-1">
-                    {item.title}
-                  </p>
-                  <p className="text-xs text-muted-foreground mt-1 line-clamp-2">
-                    {item.desc}
-                  </p>
+                  {/* Info */}
+                  <div className="p-3 space-y-1">
+                    <p className="font-extrabold text-[15px] leading-snug line-clamp-2">
+                      {item.title}
+                    </p>
 
-                  {/* Buttons: không co xấu */}
-                  <div className="mt-3 grid grid-cols-2 gap-2">
-                    {/* ✅ Chi tiết: qua trang khác */}
-                    <Link
-                      href={`/orders/${item.id}`}
-                      className="w-full inline-flex items-center justify-center gap-2 px-3 py-2
-                                 rounded-2xl bg-white/80 dark:bg-card/70 game-border
-                                 font-bold text-sm hover:scale-[1.02] active:scale-[0.99] transition"
-                    >
-                      <Eye className="w-4 h-4" />
-                      Chi tiết
-                    </Link>
+                    <p className="text-xs text-muted-foreground">
+                      ID: <span className="font-semibold">#{item.id}</span>
+                    </p>
 
-                    {/* ✅ Nhận ngay */}
-                    <button
-                      type="button"
-                      onClick={() => openLink(item.claimUrl)}
-                      className="w-full inline-flex items-center justify-center gap-2 px-3 py-2
-                                 rounded-2xl bg-primary text-white game-border shadow
-                                 font-extrabold text-sm hover:opacity-95 active:scale-[0.99] transition"
-                    >
-                      <Download className="w-4 h-4" />
-                      Nhận ngay
-                    </button>
+                    {item.meta && (
+                      <p className="text-xs text-muted-foreground">
+                        {item.meta}
+                      </p>
+                    )}
+
+                    {/* Mô tả ngắn */}
+                    <p className="text-xs text-muted-foreground line-clamp-2 mt-1">
+                      {item.desc}
+                    </p>
+
+                    {/* Giá: tất cả 0đ */}
+                    <div className="pt-2 flex items-end gap-2">
+                      <p className="text-primary font-extrabold text-lg leading-none">
+                        0₫
+                      </p>
+
+                      {/* giá gạch (tuỳ thích) */}
+                      <p className="text-xs text-muted-foreground line-through">
+                        250.000₫
+                      </p>
+
+                      {/* badge giảm giá */}
+                      <span className="ml-auto px-2 py-1 rounded-full text-[11px] font-extrabold bg-primary/15 text-primary game-border">
+                        100%
+                      </span>
+                    </div>
                   </div>
-                </div>
-              </CardContent>
-            </Card>
+                </CardContent>
+              </Card>
+            </Link>
           </motion.div>
         ))}
       </div>
     </div>
   );
-  }
+}
