@@ -1,15 +1,20 @@
 import { Link, useRoute } from "wouter";
 import { motion } from "framer-motion";
-import { ArrowLeft, Download } from "lucide-react";
+import { ArrowLeft, Download, Copy } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { ORDERS } from "@/pages/Orders";
 
 function openLink(url: string) {
   if (!url) return;
-  if (url.startsWith("/")) {
-    window.location.href = url;
-  } else {
-    window.open(url, "_blank", "noopener,noreferrer");
+  window.open(url, "_blank", "noopener,noreferrer");
+}
+
+async function safeCopy(text: string) {
+  try {
+    await navigator.clipboard.writeText(text);
+    return true;
+  } catch {
+    return false;
   }
 }
 
@@ -52,7 +57,7 @@ export default function OrderDetailPage() {
         </Link>
 
         <button
-          onClick={() => openLink(item.claimUrl)}
+          onClick={() => openLink(item.downloadUrl)}
           className="inline-flex items-center gap-2 px-4 py-2 rounded-2xl bg-primary text-white game-border font-extrabold shadow hover:opacity-95 active:scale-[0.99] transition"
         >
           <Download className="w-4 h-4" />
@@ -61,45 +66,90 @@ export default function OrderDetailPage() {
       </div>
 
       <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }}>
-        <Card className="game-border bg-white/60 dark:bg-card/60 backdrop-blur-sm overflow-hidden">
+        <Card className="game-border bg-white/70 dark:bg-card/60 backdrop-blur-sm overflow-hidden">
           <CardContent className="p-0">
-            <div className="aspect-[16/9] w-full overflow-hidden">
-              <img
-                src={item.image}
-                alt={item.title}
-                className="w-full h-full object-cover"
-              />
+            {/* Banner ảnh */}
+            <div className="relative">
+              <div className="aspect-[16/9] w-full overflow-hidden">
+                <img
+                  src={item.image}
+                  alt={item.title}
+                  className="w-full h-full object-cover"
+                />
+              </div>
+
+              {/* Tem cong */}
+              <div className="absolute top-3 left-3">
+                <div
+                  className="px-3 py-1 text-[11px] font-extrabold text-white rounded-full shadow-lg bg-primary/90"
+                  style={{ transform: "rotate(-10deg)" }}
+                >
+                  FREE DOWNLOAD
+                </div>
+              </div>
             </div>
 
+            {/* Nội dung */}
             <div className="p-5 space-y-3">
-              <h1 className="text-2xl font-extrabold">{item.detailTitle || item.title}</h1>
-              <p className="text-sm text-muted-foreground">{item.desc}</p>
+              <h1 className="text-2xl font-extrabold">{item.title}</h1>
 
-              <div className="p-4 rounded-3xl game-border bg-white/70 dark:bg-card/60">
-                <p className="font-bold mb-2">Nội dung:</p>
+              <div className="text-sm text-muted-foreground">
+                <p>
+                  ID: <b>#{item.id}</b>
+                </p>
+                {item.meta && <p>{item.meta}</p>}
+              </div>
+
+              <div className="flex items-end gap-2">
+                <p className="text-primary font-extrabold text-2xl leading-none">
+                  0₫
+                </p>
+                <p className="text-sm text-muted-foreground line-through">
+                  250.000₫
+                </p>
+                <span className="ml-auto px-3 py-1 rounded-full text-[12px] font-extrabold bg-primary/15 text-primary game-border">
+                  100% OFF
+                </span>
+              </div>
+
+              <div className="p-4 rounded-3xl game-border bg-white/80 dark:bg-card/60">
+                <p className="font-bold mb-2">Mô tả đơn hàng</p>
                 <p className="text-sm leading-relaxed whitespace-pre-wrap">
-                  {item.detailText || "Chưa có mô tả chi tiết. Bạn có thể bổ sung trong mảng ORDERS."}
+                  {item.desc}
+                  {"\n\n"}• Link tải riêng: {item.downloadUrl}
+                  {"\n"}• Nhấn “Nhận ngay” để mở trang tải trong tab mới.
                 </p>
 
-                {!!item.guide?.length && (
-                  <div className="mt-4">
-                    <p className="font-bold mb-2">Hướng dẫn nhanh:</p>
-                    <ul className="list-disc pl-5 text-sm space-y-1">
-                      {item.guide.map((g, i) => (
-                        <li key={i}>{g}</li>
-                      ))}
-                    </ul>
-                  </div>
-                )}
+                <div className="mt-3 grid grid-cols-2 gap-2">
+                  <button
+                    onClick={async () => {
+                      const ok = await safeCopy(item.downloadUrl);
+                      if (!ok) alert("Copy thất bại (trình duyệt chặn).");
+                      else alert("Đã copy link tải!");
+                    }}
+                    className="w-full inline-flex items-center justify-center gap-2 px-3 py-3 rounded-2xl bg-white/70 dark:bg-card/60 game-border font-extrabold hover:scale-[1.01] active:scale-[0.99] transition"
+                  >
+                    <Copy className="w-4 h-4" />
+                    Copy link
+                  </button>
+
+                  <button
+                    onClick={() => openLink(item.downloadUrl)}
+                    className="w-full inline-flex items-center justify-center gap-2 px-3 py-3 rounded-2xl bg-primary text-white game-border font-extrabold shadow hover:opacity-95 active:scale-[0.99] transition"
+                  >
+                    <Download className="w-4 h-4" />
+                    Nhận ngay
+                  </button>
+                </div>
               </div>
 
-              <div className="text-xs text-muted-foreground">
-                Tip: Bạn có thể thay link “Nhận ngay” thành link tải/nhận tài nguyên của bạn.
-              </div>
+              <p className="text-xs text-muted-foreground">
+                Tip: Bạn chỉ cần đổi <b>downloadUrl</b> trong mảng <b>ORDERS</b> là mỗi đơn có link riêng.
+              </p>
             </div>
           </CardContent>
         </Card>
       </motion.div>
     </div>
   );
-                                      }
+}
