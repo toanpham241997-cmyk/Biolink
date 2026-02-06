@@ -6,55 +6,66 @@ import {
   Copy,
   ExternalLink,
   FileUp,
-  Loader2,
   Trash2,
+  Upload,
+  Loader2,
   CheckCircle2,
   XCircle,
   Info,
-  Image as ImageIcon,
-  FileText,
   RefreshCw,
+  Download,
 } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 
-/* =========================
-   ENV (Vite)
-========================= */
+/** =========================
+ *  ENV
+ *  ========================= */
 const SUPABASE_URL = (import.meta.env.VITE_SUPABASE_URL as string | undefined)?.trim();
 const SUPABASE_ANON_KEY = (import.meta.env.VITE_SUPABASE_ANON_KEY as string | undefined)?.trim();
 const BUCKET = ((import.meta.env.VITE_SUPABASE_BUCKET as string | undefined)?.trim() || "upload").trim();
 
-/* =========================
-   TYPES
-========================= */
-type ToastKind = "success" | "error" | "info";
+/** =========================
+ *  TYPES
+ *  ========================= */
+type ToastKind = "success" | "error" | "info" | "warning";
 
-type UploadedItem = {
-  id: string;
-  name: string;
-  size: number;
-  type: string;
-  path: string; // path trong bucket
-  url: string; // public url
-  createdAt: number;
-};
-
-type ModalState = {
+type UiModal = {
   open: boolean;
   kind: ToastKind;
   title: string;
   message?: string;
 };
 
-type ToastState = {
-  open: boolean;
-  kind: ToastKind;
-  message: string;
+type UploadItem = {
+  id: string;
+  name: string;
+  size: number;
+  type: string;
+  path: string; // path in bucket
+  url: string; // public url (with ?download)
+  createdAt: number;
 };
 
-/* =========================
-   HELPERS
-========================= */
+type UploadJob = {
+  id: string;
+  file: File;
+  progress: number; // 0..100
+  status: "idle" | "uploading" | "success" | "error";
+  message?: string;
+  result?: UploadItem;
+};
+
+type StorageListItem = {
+  name: string;
+  id?: string;
+  updated_at?: string;
+  created_at?: string;
+  metadata?: any;
+};
+
+/** =========================
+ *  HELPERS
+ *  ========================= */
 function uid(prefix = "id") {
   return `${prefix}_${Math.random().toString(16).slice(2)}_${Date.now()}`;
 }
@@ -67,620 +78,804 @@ function formatBytes(bytes: number) {
   return `${(bytes / Math.pow(k, i)).toFixed(i ? 1 : 0)} ${sizes[i]}`;
 }
 
-async function safeCopy(text: string) {
+function isMissingEnv() {
+  return !SUPABASE_URL || !SUPABASE_ANON_KEY || !BUCKET;
+}
+
+function publicUrl(bucket: string, path: string) {
+  // ép download bằng ?download
+  return `${SUPABASE_URL}/storage/v1/object/public/${bucket}/${encodeURIComponent(path).replaceAll("%2F", "/")}?download`;
+}
+
+function storageObjectUrl(bucket: string, path: string) {
+  // endpoint object (upload/delete)
+  return `${SUPABASE_URL}/storage/v1/object/${bucket}/${encodeURIComponent(path).replaceAll("%2F", "/")}`;
+}
+
+function storageListUrl(bucket: string) {
+  return `${SUPABASE_URL}/storage/v1/object/list/${bucket}`;
+}
+
+/** =========================
+ *  LOCAL STORAGE (history)
+ *  ========================= */
+const HISTORY_KEY = "files_upload_history_v1";
+
+function loadHistory(): UploadItem[] {
   try {
-    await navigator.clipboard.writeText(text);
-    return true;
-  } catch {
-    return false;
-  }
-}
-
-function buildPublicUrl(bucket: string, path: string) {
-  // Public URL chuẩn của Supabase Storage:
-  // https://xxxx.supabase.co/storage/v1/object/public/<bucket>/<path>
-  return `${SUPABASE_URL}/storage/v1/object/public/${bucket}/${path}`;
-}
-
-function requireEnv() {
-  if (!SUPABASE_URL || !SUPABASE_ANON_KEY) {
-    return {
-      ok: false as const,
-      error:
-        "Thiếu ENV. Bạn cần set VITE_SUPABASE_URL và VITE_SUPABASE_ANON_KEY trong Render Environment hoặc file .env",
-    };
-  }
-  return { ok: true as const };
-}
-
-/* =========================
-   UI: Toast
-========================= */
-function Toast({
-  open,
-  kind,
-  message,
-  onClose,
-}: ToastState & { onClose: () => void }) {
-  if (!open) return null;
-  const Icon = kind === "success" ? CheckCircle2 : kind === "error" ? XCircle : Info;
-
-  return (
-    <div className="fixed top-4 left-0 right-0 z-50 px-4 flex justify-center">
-      <motion.div
-        initial={{ opacity: 0, y: -12, scale: 0.98 }}
-        animate={{ opacity: 1, y: 0, scale: 1 }}
-        exit={{ opacity: 0, y: -12 }}
-        className="w-full max-w-md rounded-2xl bg-white/90 dark:bg-card/90 backdrop-blur-sm game-border px-4 py-3 shadow-lg flex items-center gap-3"
-      >
-        <Icon className="w-5 h-5 text-primary" />
-        <p className="text-sm font-semibold flex-1">{message}</p>
-        <button
-          onClick={onClose}
-          className="text-xs font-bold px-3 py-1 rounded-xl bg-primary/10 hover:bg-primary/20 transition"
-        >
-          Đóng
-        </button>
-      </motion.div>
-    </div>
-  );
-}
-
-/* =========================
-   UI: Modal (swal-like)
-========================= */
-function Modal({
-  open,
-  kind,
-  title,
-  message,
-  onClose,
-}: ModalState & { onClose: () => void }) {
-  if (!open) return null;
-  const Icon = kind === "success" ? CheckCircle2 : kind === "error" ? XCircle : Info;
-
-  return (
-    <div className="fixed inset-0 z-50 bg-black/40 flex items-center justify-center px-4">
-      <motion.div
-        initial={{ opacity: 0, scale: 0.96, y: 10 }}
-        animate={{ opacity: 1, scale: 1, y: 0 }}
-        className="w-full max-w-sm rounded-[28px] bg-white dark:bg-card p-6 text-center game-border shadow-2xl"
-      >
-        <div className="w-16 h-16 mx-auto rounded-3xl bg-primary/10 flex items-center justify-center game-border">
-          <Icon className="w-9 h-9 text-primary" />
-        </div>
-        <h3 className="mt-4 text-xl font-extrabold">{title}</h3>
-        {message && (
-          <p className="mt-2 text-sm text-muted-foreground whitespace-pre-wrap">{message}</p>
-        )}
-        <button
-          onClick={onClose}
-          className="mt-5 w-full py-3 rounded-2xl bg-primary text-white font-extrabold game-border hover:opacity-95 active:scale-[0.99] transition"
-        >
-          OK
-        </button>
-      </motion.div>
-    </div>
-  );
-}
-
-/* =========================
-   XHR upload with progress
-   (fetch không có progress chuẩn)
-========================= */
-function uploadToSupabaseXHR(opts: {
-  bucket: string;
-  path: string;
-  file: File;
-  onProgress: (pct: number) => void;
-}): Promise<void> {
-  const { bucket, path, file, onProgress } = opts;
-
-  return new Promise((resolve, reject) => {
-    if (!SUPABASE_URL || !SUPABASE_ANON_KEY) {
-      reject(new Error("Thiếu SUPABASE_URL hoặc SUPABASE_ANON_KEY"));
-      return;
-    }
-
-    const endpoint = `${SUPABASE_URL}/storage/v1/object/${bucket}/${encodeURIComponent(path)}`;
-
-    const xhr = new XMLHttpRequest();
-    xhr.open("POST", endpoint, true);
-    xhr.setRequestHeader("Authorization", `Bearer ${SUPABASE_ANON_KEY}`);
-    xhr.setRequestHeader("x-upsert", "false");
-
-    xhr.upload.onprogress = (e) => {
-      if (!e.lengthComputable) return;
-      const pct = Math.round((e.loaded / e.total) * 100);
-      onProgress(pct);
-    };
-
-    xhr.onerror = () => reject(new Error("Failed to fetch (mạng/CORS)"));
-    xhr.onload = () => {
-      if (xhr.status >= 200 && xhr.status < 300) resolve();
-      else reject(new Error(xhr.responseText || `Upload lỗi: ${xhr.status}`));
-    };
-
-    xhr.send(file);
-  });
-}
-
-/* =========================
-   Delete file (OPTIONAL)
-   -> chỉ hoạt động nếu bạn set policy cho phép delete
-========================= */
-async function deleteFromSupabase(bucket: string, path: string) {
-  if (!SUPABASE_URL || !SUPABASE_ANON_KEY) {
-    throw new Error("Thiếu SUPABASE_URL hoặc SUPABASE_ANON_KEY");
-  }
-  const endpoint = `${SUPABASE_URL}/storage/v1/object/${bucket}/${encodeURIComponent(path)}`;
-
-  const res = await fetch(endpoint, {
-    method: "DELETE",
-    headers: {
-      Authorization: `Bearer ${SUPABASE_ANON_KEY}`,
-    },
-  });
-
-  // Nếu policy không cho delete -> sẽ lỗi 401/403
-  if (!res.ok) {
-    const text = await res.text().catch(() => "");
-    throw new Error(text || `Không xoá được (status ${res.status}). Có thể policy chưa cho phép.`);
-  }
-}
-
-/* =========================
-   LocalStorage store
-========================= */
-const LS_KEY = "uploaded_files_v1";
-
-function loadLocal(): UploadedItem[] {
-  try {
-    const raw = localStorage.getItem(LS_KEY);
+    const raw = localStorage.getItem(HISTORY_KEY);
     if (!raw) return [];
-    const arr = JSON.parse(raw) as UploadedItem[];
+    const arr = JSON.parse(raw);
     if (!Array.isArray(arr)) return [];
-    return arr
-      .filter((x) => x && x.id && x.url)
-      .sort((a, b) => b.createdAt - a.createdAt);
+    return arr as UploadItem[];
   } catch {
     return [];
   }
 }
 
-function saveLocal(list: UploadedItem[]) {
-  localStorage.setItem(LS_KEY, JSON.stringify(list.slice(0, 50))); // giữ tối đa 50
+function saveHistory(items: UploadItem[]) {
+  try {
+    localStorage.setItem(HISTORY_KEY, JSON.stringify(items.slice(0, 50))); // keep 50
+  } catch {}
 }
 
-/* =========================
-   PAGE
-========================= */
+/** =========================
+ *  MODAL (swal-like, no lib)
+ *  ========================= */
+function PrettyModal(props: {
+  modal: UiModal;
+  onClose: () => void;
+}) {
+  const { modal, onClose } = props;
+
+  const Icon =
+    modal.kind === "success"
+      ? CheckCircle2
+      : modal.kind === "error"
+      ? XCircle
+      : modal.kind === "warning"
+      ? Info
+      : Info;
+
+  const iconClass =
+    modal.kind === "success"
+      ? "text-emerald-500"
+      : modal.kind === "error"
+      ? "text-rose-500"
+      : modal.kind === "warning"
+      ? "text-amber-500"
+      : "text-sky-500";
+
+  return (
+    <AnimatePresence>
+      {modal.open && (
+        <motion.div
+          className="fixed inset-0 z-50 bg-black/45 flex items-center justify-center px-4"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          onClick={onClose}
+        >
+          <motion.div
+            className="w-full max-w-md rounded-[26px] bg-white/90 dark:bg-card/90 backdrop-blur p-6 shadow-2xl game-border"
+            initial={{ opacity: 0, y: 18, scale: 0.96 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: 12, scale: 0.98 }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex flex-col items-center text-center">
+              <div className="w-16 h-16 rounded-2xl bg-white/70 dark:bg-card/70 game-border flex items-center justify-center shadow">
+                <Icon className={`w-10 h-10 ${iconClass}`} />
+              </div>
+
+              <h3 className="mt-4 text-xl font-extrabold">{modal.title}</h3>
+
+              {modal.message && (
+                <p className="mt-2 text-sm text-muted-foreground whitespace-pre-wrap break-words">
+                  {modal.message}
+                </p>
+              )}
+
+              <button
+                onClick={onClose}
+                className="mt-5 w-full py-3 rounded-2xl bg-primary text-white font-extrabold game-border hover:opacity-95 active:scale-[0.99] transition"
+              >
+                OK
+              </button>
+            </div>
+          </motion.div>
+        </motion.div>
+      )}
+    </AnimatePresence>
+  );
+}
+
+/** =========================
+ *  REST: Upload with progress (XHR)
+ *  ========================= */
+function uploadToSupabaseWithProgress(opts: {
+  bucket: string;
+  path: string;
+  file: File;
+  onProgress: (pct: number) => void;
+}): Promise<void> {
+  return new Promise((resolve, reject) => {
+    if (!SUPABASE_URL || !SUPABASE_ANON_KEY) {
+      reject(new Error("Thiếu ENV Supabase."));
+      return;
+    }
+
+    const xhr = new XMLHttpRequest();
+    xhr.open("POST", storageObjectUrl(opts.bucket, opts.path), true);
+
+    // IMPORTANT headers
+    xhr.setRequestHeader("Authorization", `Bearer ${SUPABASE_ANON_KEY}`);
+    xhr.setRequestHeader("apikey", SUPABASE_ANON_KEY);
+    xhr.setRequestHeader("x-upsert", "true");
+    xhr.setRequestHeader("Content-Type", opts.file.type || "application/octet-stream");
+
+    xhr.upload.onprogress = (e) => {
+      if (!e.lengthComputable) return;
+      const pct = Math.round((e.loaded / e.total) * 100);
+      opts.onProgress(Math.max(0, Math.min(100, pct)));
+    };
+
+    xhr.onload = () => {
+      // Supabase Storage upload usually returns 200/201
+      if (xhr.status >= 200 && xhr.status < 300) {
+        resolve();
+      } else {
+        // try parse error json
+        try {
+          const data = JSON.parse(xhr.responseText || "{}");
+          reject(new Error(data?.message || data?.error || xhr.responseText || `HTTP ${xhr.status}`));
+        } catch {
+          reject(new Error(xhr.responseText || `HTTP ${xhr.status}`));
+        }
+      }
+    };
+
+    xhr.onerror = () => reject(new Error("Failed to fetch (mạng/CORS)"));
+    xhr.ontimeout = () => reject(new Error("Upload timeout"));
+
+    xhr.send(opts.file);
+  });
+}
+
+/** =========================
+ *  REST: List files
+ *  ========================= */
+async function listSupabaseFiles(opts: { bucket: string; prefix: string }): Promise<StorageListItem[]> {
+  if (!SUPABASE_URL || !SUPABASE_ANON_KEY) throw new Error("Thiếu ENV Supabase.");
+
+  const res = await fetch(storageListUrl(opts.bucket), {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${SUPABASE_ANON_KEY}`,
+      apikey: SUPABASE_ANON_KEY,
+    },
+    body: JSON.stringify({
+      prefix: opts.prefix,
+      limit: 100,
+      offset: 0,
+      sortBy: { column: "updated_at", order: "desc" },
+    }),
+  });
+
+  const json = await res.json().catch(() => null);
+
+  if (!res.ok) {
+    throw new Error(json?.message || json?.error || `List failed (HTTP ${res.status})`);
+  }
+
+  if (!Array.isArray(json)) return [];
+  return json as StorageListItem[];
+}
+
+/** =========================
+ *  REST: Delete file
+ *  ========================= */
+async function deleteSupabaseFile(opts: { bucket: string; path: string }): Promise<void> {
+  if (!SUPABASE_URL || !SUPABASE_ANON_KEY) throw new Error("Thiếu ENV Supabase.");
+
+  const res = await fetch(storageObjectUrl(opts.bucket, opts.path), {
+    method: "DELETE",
+    headers: {
+      Authorization: `Bearer ${SUPABASE_ANON_KEY}`,
+      apikey: SUPABASE_ANON_KEY,
+    },
+  });
+
+  const json = await res.json().catch(() => null);
+
+  if (!res.ok) {
+    throw new Error(json?.message || json?.error || `Delete failed (HTTP ${res.status})`);
+  }
+}
+
+/** =========================
+ *  PAGE
+ *  ========================= */
 export default function FilesPage() {
-  const [picked, setPicked] = useState<File[]>([]);
-  const [items, setItems] = useState<UploadedItem[]>([]);
-  const [isUploading, setIsUploading] = useState(false);
-  const [progress, setProgress] = useState(0);
+  // UI
+  const [modal, setModal] = useState<UiModal>({
+    open: false,
+    kind: "info",
+    title: "",
+    message: "",
+  });
 
-  const [toast, setToast] = useState<ToastState>({ open: false, kind: "info", message: "" });
-  const [modal, setModal] = useState<ModalState>({ open: false, kind: "info", title: "" });
+  const showModal = (kind: ToastKind, title: string, message?: string) => {
+    setModal({ open: true, kind, title, message });
+  };
 
+  const closeModal = () => setModal((m) => ({ ...m, open: false }));
+
+  // Files
   const inputRef = useRef<HTMLInputElement | null>(null);
+  const [pickedFiles, setPickedFiles] = useState<File[]>([]);
+  const [jobs, setJobs] = useState<UploadJob[]>([]);
+  const [prefix, setPrefix] = useState<string>("public"); // folder in bucket
+  const [isListing, setIsListing] = useState(false);
+  const [remoteList, setRemoteList] = useState<StorageListItem[]>([]);
+  const [history, setHistory] = useState<UploadItem[]>(() => loadHistory());
+
+  const totalPickedSize = useMemo(
+    () => pickedFiles.reduce((sum, f) => sum + (f.size || 0), 0),
+    [pickedFiles]
+  );
+
+  // constraints
+  const MAX_FILES = 6;
+  const MAX_MB_PER_FILE = 50;
 
   useEffect(() => {
-    setItems(loadLocal());
-  }, []);
+    saveHistory(history);
+  }, [history]);
 
-  // Auto hide toast
-  useEffect(() => {
-    if (!toast.open) return;
-    const t = setTimeout(() => setToast((p) => ({ ...p, open: false })), 2200);
-    return () => clearTimeout(t);
-  }, [toast.open]);
+  const resetAll = () => {
+    setPickedFiles([]);
+    setJobs([]);
+    if (inputRef.current) inputRef.current.value = "";
+    showModal("info", "Đã làm mới", "Bạn có thể chọn file và upload lại.");
+  };
 
-  const canUpload = useMemo(() => picked.length > 0 && !isUploading, [picked.length, isUploading]);
-
-  const pickFiles = (files: FileList | null) => {
+  const onPickFiles = (files: FileList | null) => {
     if (!files) return;
+
     const arr = Array.from(files);
 
-    const MAX_FILES = 6;
-    const MAX_EACH_MB = 50;
-
-    const ok = arr
-      .slice(0, MAX_FILES)
-      .filter((f) => f.size <= MAX_EACH_MB * 1024 * 1024);
-
-    if (ok.length !== arr.slice(0, MAX_FILES).length) {
-      setToast({
-        open: true,
-        kind: "info",
-        message: `Giới hạn: tối đa ${MAX_FILES} file, mỗi file ≤ ${MAX_EACH_MB}MB`,
-      });
+    if (arr.length > MAX_FILES) {
+      showModal("warning", "Chọn quá nhiều file", `Tối đa ${MAX_FILES} file/lần.`);
+      return;
     }
 
-    setPicked(ok);
-  };
-
-  const clearPicked = () => {
-    setPicked([]);
-    if (inputRef.current) inputRef.current.value = "";
-  };
-
-  const openUrl = (url: string) => window.open(url, "_blank", "noopener,noreferrer");
-
-  const onCopy = async (text: string) => {
-    const ok = await safeCopy(text);
-    if (ok) {
-      setModal({
-        open: true,
-        kind: "success",
-        title: "Copy thành công",
-        message: "Link đã được copy vào clipboard.",
-      });
-    } else {
-      setModal({
-        open: true,
-        kind: "error",
-        title: "Copy thất bại",
-        message: "Trình duyệt chặn clipboard. Hãy copy thủ công.",
-      });
+    const tooBig = arr.find((f) => f.size > MAX_MB_PER_FILE * 1024 * 1024);
+    if (tooBig) {
+      showModal(
+        "warning",
+        "File quá nặng",
+        `File "${tooBig.name}" > ${MAX_MB_PER_FILE}MB. Hãy chọn file nhỏ hơn.`
+      );
+      return;
     }
+
+    setPickedFiles(arr);
+
+    // create jobs
+    const newJobs: UploadJob[] = arr.map((f) => ({
+      id: uid("job"),
+      file: f,
+      progress: 0,
+      status: "idle",
+    }));
+    setJobs(newJobs);
+  };
+
+  const buildPath = (file: File) => {
+    // path inside bucket
+    const safeName = file.name.replaceAll("..", ".").replaceAll("\\", "_").replaceAll("/", "_");
+    const stamp = Date.now();
+    return `${prefix}/${stamp}_${safeName}`;
   };
 
   const uploadAll = async () => {
-    const env = requireEnv();
-    if (!env.ok) {
-      setModal({ open: true, kind: "error", title: "Thiếu cấu hình", message: env.error });
+    if (isMissingEnv()) {
+      showModal(
+        "error",
+        "Thiếu ENV Supabase",
+        "Bạn cần set:\nVITE_SUPABASE_URL\nVITE_SUPABASE_ANON_KEY\nVITE_SUPABASE_BUCKET"
+      );
       return;
     }
-    if (!picked.length) {
-      setToast({ open: true, kind: "error", message: "Bạn chưa chọn file." });
+
+    if (!pickedFiles.length) {
+      showModal("warning", "Bạn chưa chọn file", "Bấm 'Chọn file' để chọn file trước.");
+      return;
+    }
+
+    // upload sequential (ổn định trên mobile)
+    for (const job of jobs) {
+      // skip success
+      if (job.status === "success") continue;
+
+      setJobs((prev) =>
+        prev.map((j) => (j.id === job.id ? { ...j, status: "uploading", progress: 0 } : j))
+      );
+
+      const path = buildPath(job.file);
+      const url = publicUrl(BUCKET, path);
+
+      try {
+        await uploadToSupabaseWithProgress({
+          bucket: BUCKET,
+          path,
+          file: job.file,
+          onProgress: (pct) => {
+            setJobs((prev) =>
+              prev.map((j) => (j.id === job.id ? { ...j, progress: pct } : j))
+            );
+          },
+        });
+
+        const item: UploadItem = {
+          id: uid("file"),
+          name: job.file.name,
+          size: job.file.size,
+          type: job.file.type || "application/octet-stream",
+          path,
+          url,
+          createdAt: Date.now(),
+        };
+
+        setJobs((prev) =>
+          prev.map((j) =>
+            j.id === job.id ? { ...j, status: "success", progress: 100, result: item } : j
+          )
+        );
+
+        setHistory((prev) => [item, ...prev]);
+      } catch (e: any) {
+        const msg = String(e?.message || e || "Upload lỗi");
+
+        setJobs((prev) =>
+          prev.map((j) =>
+            j.id === job.id ? { ...j, status: "error", message: msg } : j
+          )
+        );
+
+        // Nếu gặp lỗi 401/403 -> thường là policy
+        showModal(
+          "error",
+          "Upload thất bại",
+          msg.includes("401") || msg.includes("403")
+            ? `${msg}\n\nGợi ý: bucket PUBLIC vẫn cần Policy cho INSERT (upload). Xem phần Policy bên dưới.`
+            : msg
+        );
+
+        // dừng luôn để bạn xử lý (đỡ spam lỗi)
+        return;
+      }
+    }
+
+    showModal("success", "Upload thành công!", "File đã có link tải public.");
+  };
+
+  const copyText = async (text: string) => {
+    try {
+      await navigator.clipboard.writeText(text);
+      showModal("success", "Copy thành công", "Link đã được copy vào clipboard.");
+    } catch {
+      showModal("warning", "Không copy được", "Trình duyệt chặn clipboard. Bạn hãy copy thủ công.");
+    }
+  };
+
+  const forceDownload = (url: string) => {
+    // ép download (mobile friendly)
+    const a = document.createElement("a");
+    a.href = url.includes("?download") ? url : `${url}?download`;
+    a.download = "";
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+  };
+
+  const refreshRemoteList = async () => {
+    if (isMissingEnv()) {
+      showModal("error", "Thiếu ENV Supabase", "Bạn chưa set đủ ENV Supabase.");
       return;
     }
 
     try {
-      setIsUploading(true);
-      setProgress(0);
-
-      const newItems: UploadedItem[] = [];
-
-      for (let i = 0; i < picked.length; i++) {
-        const f = picked[i];
-        const safeName = f.name.replace(/[^\w.\-()+ ]+/g, "_");
-        const path = `${Date.now()}_${i + 1}_${safeName}`;
-
-        setProgress(0);
-
-        await uploadToSupabaseXHR({
-          bucket: BUCKET,
-          path,
-          file: f,
-          onProgress: (pct) => setProgress(pct),
-        });
-
-        const url = buildPublicUrl(BUCKET, path);
-
-        newItems.push({
-          id: uid("file"),
-          name: f.name,
-          size: f.size,
-          type: f.type || "application/octet-stream",
-          path,
-          url,
-          createdAt: Date.now(),
-        });
-      }
-
-      const merged = [...newItems, ...items].sort((a, b) => b.createdAt - a.createdAt);
-      setItems(merged);
-      saveLocal(merged);
-
-      clearPicked();
-
-      setModal({
-        open: true,
-        kind: "success",
-        title: "Upload thành công",
-        message: `Đã upload ${newItems.length} file.\nLink tải đã sẵn sàng.`,
-      });
+      setIsListing(true);
+      const items = await listSupabaseFiles({ bucket: BUCKET, prefix });
+      setRemoteList(items);
+      showModal("success", "Đã làm mới", `Đã tải danh sách: ${items.length} mục.`);
     } catch (e: any) {
-      setModal({
-        open: true,
-        kind: "error",
-        title: "Upload thất bại",
-        message: String(e?.message || e || "Failed to fetch"),
-      });
+      showModal("error", "Không lấy được danh sách", String(e?.message || e || "List lỗi"));
     } finally {
-      setIsUploading(false);
-      setProgress(0);
+      setIsListing(false);
+    }
+  };
+
+  const deleteOne = async (path: string) => {
+    if (isMissingEnv()) {
+      showModal("error", "Thiếu ENV Supabase", "Bạn chưa set đủ ENV Supabase.");
+      return;
+    }
+
+    try {
+      await deleteSupabaseFile({ bucket: BUCKET, path });
+      setHistory((prev) => prev.filter((x) => x.path !== path));
+      setJobs((prev) =>
+        prev.map((j) =>
+          j.result?.path === path ? { ...j, result: undefined, status: "idle", progress: 0 } : j
+        )
+      );
+      showModal("success", "Đã xoá", "File đã được xoá khỏi Storage.");
+      // refresh list
+      refreshRemoteList();
+    } catch (e: any) {
+      showModal(
+        "error",
+        "Xoá thất bại",
+        String(e?.message || e || "Delete lỗi") +
+          "\n\nGợi ý: cần Policy cho DELETE (nếu muốn xoá bằng client)."
+      );
     }
   };
 
   const clearHistory = () => {
-    setItems([]);
-    saveLocal([]);
-    setToast({ open: true, kind: "success", message: "Đã xoá lịch sử hiển thị." });
+    setHistory([]);
+    showModal("info", "Đã xoá lịch sử", "Lịch sử link đã tạo đã được xoá.");
   };
 
-  const removeItemUIOnly = (id: string) => {
-    const next = items.filter((x) => x.id !== id);
-    setItems(next);
-    saveLocal(next);
-  };
-
-  const deleteOnSupabaseThenRemove = async (it: UploadedItem) => {
-    try {
-      setModal({
-        open: true,
-        kind: "info",
-        title: "Đang xoá...",
-        message: "Vui lòng đợi.",
-      });
-
-      await deleteFromSupabase(BUCKET, it.path);
-
-      removeItemUIOnly(it.id);
-
-      setModal({
-        open: true,
-        kind: "success",
-        title: "Đã xoá",
-        message: "File đã được xoá khỏi Supabase (nếu policy cho phép).",
-      });
-    } catch (e: any) {
-      setModal({
-        open: true,
-        kind: "error",
-        title: "Không xoá được",
-        message: String(e?.message || e),
-      });
-    }
-  };
-
-  const isImage = (mime: string) => mime.startsWith("image/");
+  // auto list once
+  useEffect(() => {
+    // đừng auto nếu thiếu env
+    if (!isMissingEnv()) refreshRemoteList();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   return (
-    <div className="min-h-screen px-4 pt-24 pb-16 max-w-3xl mx-auto">
-      {/* Toast + Modal */}
-      <AnimatePresence>
-        {toast.open && (
-          <Toast
-            open={toast.open}
-            kind={toast.kind}
-            message={toast.message}
-            onClose={() => setToast((p) => ({ ...p, open: false }))}
-          />
-        )}
-      </AnimatePresence>
-
-      <Modal
-        open={modal.open}
-        kind={modal.kind}
-        title={modal.title}
-        message={modal.message}
-        onClose={() => setModal((p) => ({ ...p, open: false }))}
-      />
+    <div className="min-h-screen px-4 pt-24 pb-16 max-w-2xl mx-auto">
+      <PrettyModal modal={modal} onClose={closeModal} />
 
       <motion.div initial={{ opacity: 0, y: 14 }} animate={{ opacity: 1, y: 0 }}>
         {/* Header */}
         <div className="flex items-center justify-between gap-3 mb-6">
           <Link
             href="/"
-            className="inline-flex items-center gap-2 px-3 py-2 rounded-2xl bg-white/70 dark:bg-card/60 game-border hover:scale-[1.02] active:scale-[0.99] transition font-bold"
+            className="inline-flex items-center gap-2 px-3 py-2 rounded-2xl bg-white/70 dark:bg-card/60 game-border hover:scale-[1.02] active:scale-[0.99] transition"
           >
             <ArrowLeft className="w-4 h-4" />
-            Về Home
+            <span className="font-extrabold">Về Home</span>
           </Link>
 
           <div className="flex items-center gap-2">
             <button
-              onClick={clearHistory}
-              className="inline-flex items-center gap-2 px-3 py-2 rounded-2xl bg-white/70 dark:bg-card/60 game-border hover:scale-[1.02] active:scale-[0.99] transition font-bold"
-              title="Xoá lịch sử hiển thị"
+              onClick={refreshRemoteList}
+              disabled={isListing}
+              className="inline-flex items-center gap-2 px-3 py-2 rounded-2xl bg-white/70 dark:bg-card/60 game-border hover:scale-[1.02] active:scale-[0.99] transition font-extrabold disabled:opacity-60"
             >
-              <Trash2 className="w-4 h-4" />
-              Xoá
+              {isListing ? <Loader2 className="w-4 h-4 animate-spin" /> : <RefreshCw className="w-4 h-4" />}
+              Làm mới
             </button>
 
             <button
-              onClick={() => window.location.reload()}
-              className="inline-flex items-center gap-2 px-3 py-2 rounded-2xl bg-white/70 dark:bg-card/60 game-border hover:scale-[1.02] active:scale-[0.99] transition font-bold"
-              title="Reload"
+              onClick={resetAll}
+              className="px-3 py-2 rounded-2xl bg-white/70 dark:bg-card/60 game-border hover:scale-[1.02] active:scale-[0.99] transition font-extrabold"
             >
-              <RefreshCw className="w-4 h-4" />
-              Làm mới
+              Reset
             </button>
           </div>
         </div>
 
-        <div className="mb-4">
-          <h1 className="text-2xl font-extrabold">Up files & lấy link tải</h1>
-          <p className="text-sm text-muted-foreground mt-1">
-            Upload file lên <b>Supabase Storage</b> (bucket <b>{BUCKET}</b>) → lấy link public để tải.
-          </p>
-        </div>
+        <h1 className="text-2xl font-extrabold mb-2">Up file & lấy link tải</h1>
+        <p className="text-sm text-muted-foreground mb-4">
+          Host: <span className="font-bold">Supabase Storage</span> • Bucket:{" "}
+          <span className="font-bold">{BUCKET}</span>
+        </p>
 
-        {/* Upload box */}
         <Card className="game-border bg-white/60 dark:bg-card/60 backdrop-blur-sm">
           <CardContent className="pt-6 space-y-4">
-            {/* Info box */}
-            <div className="p-4 rounded-3xl bg-white/70 dark:bg-card/60 game-border">
+            {/* How to */}
+            <div className="p-4 rounded-[26px] bg-white/70 dark:bg-card/60 game-border">
               <div className="flex items-start gap-3">
-                <div className="w-11 h-11 rounded-2xl bg-primary/10 flex items-center justify-center game-border">
-                  <FileUp className="w-5 h-5 text-primary" />
+                <div className="w-12 h-12 rounded-2xl bg-primary/10 flex items-center justify-center game-border">
+                  <Upload className="w-6 h-6 text-primary" />
                 </div>
-                <div className="flex-1">
-                  <p className="font-extrabold">Cách dùng</p>
-                  <ul className="mt-1 text-sm text-muted-foreground space-y-1 list-disc pl-4">
-                    <li>Chọn tối đa 6 file (≤ 50MB/file) rồi bấm Upload.</li>
-                    <li>Upload xong sẽ có link tải public.</li>
-                    <li>Nếu “Failed to fetch” → thường do mạng/CORS/ENV sai.</li>
+
+                <div className="space-y-2">
+                  <p className="font-extrabold text-lg">Cách dùng</p>
+                  <ul className="text-sm text-muted-foreground list-disc pl-5 space-y-1">
+                    <li>Chọn tối đa <b>{MAX_FILES}</b> file (≤ <b>{MAX_MB_PER_FILE}MB/file</b>) rồi bấm Upload.</li>
+                    <li>Upload xong sẽ có <b>link tải public</b> (ép tải bằng <b>?download</b>).</li>
+                    <li>Nếu gặp <b>403 Unauthorized / Compact JWS</b> → thường do <b>ANON KEY sai</b> hoặc <b>Policy chưa cho INSERT</b>.</li>
                   </ul>
                 </div>
               </div>
             </div>
 
-            {/* File input */}
+            {/* ENV warn */}
+            {isMissingEnv() && (
+              <div className="p-4 rounded-[26px] bg-rose-50 dark:bg-rose-950/20 game-border">
+                <p className="font-extrabold text-rose-600 dark:text-rose-400">
+                  Thiếu ENV Supabase
+                </p>
+                <p className="text-sm text-rose-600/90 dark:text-rose-400/90 mt-1 whitespace-pre-wrap">
+                  Bạn cần set:
+                  {"\n"}- VITE_SUPABASE_URL
+                  {"\n"}- VITE_SUPABASE_ANON_KEY (Publishable/anon JWT)
+                  {"\n"}- VITE_SUPABASE_BUCKET
+                </p>
+              </div>
+            )}
+
+            {/* Pick files */}
             <div className="space-y-3">
               <input
                 ref={inputRef}
                 type="file"
                 multiple
                 className="w-full"
-                onChange={(e) => pickFiles(e.target.files)}
+                onChange={(e) => onPickFiles(e.target.files)}
               />
 
-              {!!picked.length && (
-                <div className="p-4 rounded-3xl bg-white/70 dark:bg-card/60 game-border">
-                  <p className="font-extrabold mb-2">File đã chọn ({picked.length})</p>
-                  <div className="space-y-2">
-                    {picked.map((f, idx) => (
-                      <div
-                        key={`${f.name}_${idx}`}
-                        className="flex items-center justify-between gap-3 p-3 rounded-2xl bg-white/60 game-border"
-                      >
-                        <div className="flex items-center gap-2 min-w-0">
-                          {isImage(f.type) ? (
-                            <ImageIcon className="w-5 h-5 text-primary" />
-                          ) : (
-                            <FileText className="w-5 h-5 text-primary" />
-                          )}
-                          <div className="min-w-0">
-                            <p className="font-bold break-all line-clamp-1">{f.name}</p>
-                            <p className="text-xs text-muted-foreground">
-                              {formatBytes(f.size)} • {f.type || "file"}
-                            </p>
-                          </div>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-
-                  <div className="mt-3 flex items-center gap-2">
-                    <button
-                      onClick={clearPicked}
-                      className="flex-1 py-3 rounded-2xl bg-white/70 dark:bg-card/60 game-border font-extrabold hover:scale-[1.01] active:scale-[0.99] transition"
-                    >
-                      Bỏ chọn
-                    </button>
-
-                    <button
-                      onClick={uploadAll}
-                      disabled={!canUpload}
-                      className="flex-1 py-3 rounded-2xl bg-primary text-white font-extrabold game-border hover:opacity-95 disabled:opacity-60 transition flex items-center justify-center gap-2"
-                    >
-                      {isUploading ? (
-                        <>
-                          <Loader2 className="w-5 h-5 animate-spin" />
-                          Đang upload {progress}%
-                        </>
-                      ) : (
-                        <>
-                          <FileUp className="w-5 h-5" />
-                          Upload
-                        </>
-                      )}
-                    </button>
-                  </div>
-
-                  {isUploading && (
-                    <div className="mt-3">
-                      <div className="h-3 rounded-full bg-black/10 overflow-hidden game-border">
-                        <div
-                          className="h-full bg-primary transition-all"
-                          style={{ width: `${Math.min(100, Math.max(0, progress))}%` }}
-                        />
-                      </div>
-                      <p className="mt-2 text-xs text-muted-foreground">
-                        Tiến trình: {progress}% (XHR upload)
-                      </p>
-                    </div>
-                  )}
+              {pickedFiles.length > 0 && (
+                <div className="p-4 rounded-[26px] bg-white/70 dark:bg-card/60 game-border">
+                  <p className="font-extrabold">
+                    Đã chọn: {pickedFiles.length} file • Tổng dung lượng: {formatBytes(totalPickedSize)}
+                  </p>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Gợi ý: Upload tuần tự để ổn định trên điện thoại.
+                  </p>
                 </div>
               )}
-            </div>
-          </CardContent>
-        </Card>
 
-        {/* List uploaded */}
-        <div className="mt-6">
-          <div className="flex items-center justify-between mb-3">
-            <h2 className="text-lg font-extrabold">Lịch sử link đã tạo</h2>
-            <p className="text-xs text-muted-foreground">{items.length} mục</p>
-          </div>
-
-          {!items.length ? (
-            <div className="p-5 rounded-3xl bg-white/60 dark:bg-card/60 game-border text-sm text-muted-foreground">
-              Chưa có file nào. Hãy upload để có link tải.
+              <button
+                onClick={uploadAll}
+                className="w-full py-4 rounded-[28px] bg-primary text-white font-extrabold shadow-lg hover:opacity-95 active:scale-[0.99] transition flex items-center justify-center gap-2 game-border"
+              >
+                <FileUp className="w-5 h-5" />
+                Upload
+              </button>
             </div>
-          ) : (
-            <div className="space-y-3">
-              {items.map((it) => (
-                <Card key={it.id} className="game-border bg-white/60 dark:bg-card/60">
-                  <CardContent className="pt-4 pb-4">
-                    <div className="flex items-start gap-3">
-                      <div className="w-12 h-12 rounded-2xl bg-primary/10 flex items-center justify-center game-border">
-                        {isImage(it.type) ? (
-                          <ImageIcon className="w-6 h-6 text-primary" />
-                        ) : (
-                          <FileText className="w-6 h-6 text-primary" />
-                        )}
+
+            {/* Jobs */}
+            {jobs.length > 0 && (
+              <div className="space-y-3">
+                <div className="flex items-center justify-between">
+                  <p className="font-extrabold text-lg">Tiến trình</p>
+                  <p className="text-xs text-muted-foreground">{jobs.length} mục</p>
+                </div>
+
+                {jobs.map((j) => {
+                  const statusColor =
+                    j.status === "success"
+                      ? "bg-emerald-500"
+                      : j.status === "error"
+                      ? "bg-rose-500"
+                      : "bg-primary";
+
+                  return (
+                    <div key={j.id} className="p-4 rounded-[26px] bg-white/70 dark:bg-card/60 game-border">
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="min-w-0">
+                          <p className="font-extrabold break-all">{j.file.name}</p>
+                          <p className="text-xs text-muted-foreground">
+                            {formatBytes(j.file.size)} • {j.file.type || "file"}
+                          </p>
+                        </div>
+
+                        <div className="shrink-0">
+                          {j.status === "uploading" && <Loader2 className="w-5 h-5 animate-spin" />}
+                          {j.status === "success" && <CheckCircle2 className="w-5 h-5 text-emerald-500" />}
+                          {j.status === "error" && <XCircle className="w-5 h-5 text-rose-500" />}
+                        </div>
                       </div>
 
-                      <div className="flex-1 min-w-0">
-                        <p className="font-extrabold break-all line-clamp-1">{it.name}</p>
-                        <p className="text-xs text-muted-foreground">
-                          {formatBytes(it.size)} • {new Date(it.createdAt).toLocaleString()}
-                        </p>
+                      <div className="mt-3">
+                        <div className="w-full h-3 rounded-full bg-black/10 overflow-hidden">
+                          <div
+                            className={`h-full ${statusColor}`}
+                            style={{ width: `${j.progress}%` }}
+                          />
+                        </div>
+                        <div className="flex items-center justify-between mt-2">
+                          <p className="text-xs text-muted-foreground">
+                            {j.status === "error" ? "Lỗi" : "Progress"}: <b>{j.progress}%</b>
+                          </p>
+                          {j.status === "error" && (
+                            <p className="text-xs text-rose-600 dark:text-rose-400 break-words max-w-[65%] text-right">
+                              {j.message}
+                            </p>
+                          )}
+                        </div>
+                      </div>
 
-                        <a
-                          href={it.url}
-                          target="_blank"
-                          rel="noreferrer"
-                          className="block mt-2 break-all text-primary underline font-semibold"
-                        >
-                          {it.url}
-                        </a>
+                      {/* Result actions */}
+                      {j.result?.url && (
+                        <div className="mt-3 p-3 rounded-2xl bg-white/70 dark:bg-card/60 game-border space-y-2">
+                          <p className="font-extrabold">Link tải (public)</p>
+
+                          <a
+                            href={j.result.url}
+                            className="text-primary underline break-all font-bold"
+                            target="_blank"
+                            rel="noreferrer"
+                          >
+                            {j.result.url}
+                          </a>
+
+                          <div className="grid grid-cols-2 gap-2">
+                            <button
+                              onClick={() => copyText(j.result!.url)}
+                              className="py-3 rounded-2xl bg-primary/10 hover:bg-primary/20 font-extrabold transition flex items-center justify-center gap-2"
+                            >
+                              <Copy className="w-4 h-4" />
+                              Copy
+                            </button>
+
+                            <button
+                              onClick={() => forceDownload(j.result!.url)}
+                              className="py-3 rounded-2xl bg-primary text-white hover:opacity-95 font-extrabold transition flex items-center justify-center gap-2 game-border"
+                            >
+                              <Download className="w-4 h-4" />
+                              Tải về
+                            </button>
+                          </div>
+
+                          <button
+                            onClick={() => deleteOne(j.result!.path)}
+                            className="w-full py-3 rounded-2xl bg-rose-500/10 hover:bg-rose-500/20 text-rose-600 dark:text-rose-400 font-extrabold transition flex items-center justify-center gap-2"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                            Xoá file
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+
+            {/* Remote list */}
+            <div className="space-y-3">
+              <div className="flex items-center justify-between">
+                <p className="font-extrabold text-lg">Files trên Supabase</p>
+                <p className="text-xs text-muted-foreground">{remoteList.length} mục</p>
+              </div>
+
+              {remoteList.length === 0 ? (
+                <div className="p-4 rounded-[26px] bg-white/70 dark:bg-card/60 game-border text-sm text-muted-foreground">
+                  Chưa có file nào (hoặc chưa có quyền LIST). Hãy upload để tạo link tải.
+                </div>
+              ) : (
+                <div className="space-y-2">
+                  {remoteList.map((it, idx) => {
+                    const path = `${prefix}/${it.name}`;
+                    const url = publicUrl(BUCKET, path);
+
+                    return (
+                      <div key={`${it.name}_${idx}`} className="p-4 rounded-[26px] bg-white/70 dark:bg-card/60 game-border">
+                        <p className="font-extrabold break-all">{it.name}</p>
 
                         <div className="mt-3 grid grid-cols-3 gap-2">
                           <button
-                            onClick={() => onCopy(it.url)}
-                            className="py-2 rounded-2xl bg-primary/10 hover:bg-primary/20 font-extrabold transition flex items-center justify-center gap-2"
+                            onClick={() => copyText(url)}
+                            className="py-3 rounded-2xl bg-primary/10 hover:bg-primary/20 font-extrabold transition flex items-center justify-center gap-2"
                           >
                             <Copy className="w-4 h-4" />
                             Copy
                           </button>
 
                           <button
-                            onClick={() => openUrl(it.url)}
-                            className="py-2 rounded-2xl bg-white/70 dark:bg-card/60 game-border font-extrabold transition flex items-center justify-center gap-2"
+                            onClick={() => forceDownload(url)}
+                            className="py-3 rounded-2xl bg-primary text-white hover:opacity-95 font-extrabold transition flex items-center justify-center gap-2 game-border"
                           >
-                            <ExternalLink className="w-4 h-4" />
-                            Mở
+                            <Download className="w-4 h-4" />
+                            Tải
                           </button>
 
                           <button
-                            onClick={() => deleteOnSupabaseThenRemove(it)}
-                            className="py-2 rounded-2xl bg-white/70 dark:bg-card/60 game-border font-extrabold transition flex items-center justify-center gap-2"
-                            title="Xoá trên Supabase (cần policy cho phép)"
+                            onClick={() => deleteOne(path)}
+                            className="py-3 rounded-2xl bg-rose-500/10 hover:bg-rose-500/20 text-rose-600 dark:text-rose-400 font-extrabold transition flex items-center justify-center gap-2"
                           >
                             <Trash2 className="w-4 h-4" />
                             Xoá
                           </button>
                         </div>
 
-                        <p className="mt-2 text-[11px] text-muted-foreground">
-                          Nếu nút “Xoá” báo lỗi 401/403: bucket/policy chưa cho xoá bằng anon key
-                          (front-end). Bạn vẫn có thể “Xoá lịch sử hiển thị” ở trên.
-                        </p>
+                        <a
+                          href={url}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="mt-3 inline-flex items-center gap-2 text-primary underline break-all font-bold"
+                        >
+                          <ExternalLink className="w-4 h-4" />
+                          {url}
+                        </a>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+
+            {/* History */}
+            <div className="space-y-3">
+              <div className="flex items-center justify-between">
+                <p className="font-extrabold text-lg">Lịch sử link đã tạo</p>
+                <button
+                  onClick={clearHistory}
+                  className="text-xs font-extrabold px-3 py-2 rounded-2xl bg-white/70 dark:bg-card/60 game-border hover:scale-[1.02] active:scale-[0.99] transition"
+                >
+                  Xoá lịch sử
+                </button>
+              </div>
+
+              {history.length === 0 ? (
+                <div className="p-4 rounded-[26px] bg-white/70 dark:bg-card/60 game-border text-sm text-muted-foreground">
+                  Chưa có file nào. Hãy upload để có link tải.
+                </div>
+              ) : (
+                <div className="space-y-2">
+                  {history.slice(0, 12).map((h) => (
+                    <div key={h.id} className="p-4 rounded-[26px] bg-white/70 dark:bg-card/60 game-border">
+                      <p className="font-extrabold break-all">{h.name}</p>
+                      <p className="text-xs text-muted-foreground">
+                        {formatBytes(h.size)} • {new Date(h.createdAt).toLocaleString()}
+                      </p>
+
+                      <a
+                        href={h.url}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="mt-2 block text-primary underline break-all font-bold"
+                      >
+                        {h.url}
+                      </a>
+
+                      <div className="mt-3 grid grid-cols-2 gap-2">
+                        <button
+                          onClick={() => copyText(h.url)}
+                          className="py-3 rounded-2xl bg-primary/10 hover:bg-primary/20 font-extrabold transition flex items-center justify-center gap-2"
+                        >
+                          <Copy className="w-4 h-4" />
+                          Copy
+                        </button>
+
+                        <button
+                          onClick={() => forceDownload(h.url)}
+                          className="py-3 rounded-2xl bg-primary text-white hover:opacity-95 font-extrabold transition flex items-center justify-center gap-2 game-border"
+                        >
+                          <Download className="w-4 h-4" />
+                          Tải về
+                        </button>
                       </div>
                     </div>
-                  </CardContent>
-                </Card>
-              ))}
+                  ))}
+                </div>
+              )}
             </div>
-          )}
-        </div>
+
+            {/* Policy note */}
+            <div className="p-4 rounded-[26px] bg-amber-50 dark:bg-amber-950/20 game-border">
+              <p className="font-extrabold text-amber-700 dark:text-amber-300">Nếu bạn vẫn bị 403 Unauthorized</p>
+              <p className="text-sm text-amber-700/90 dark:text-amber-300/90 mt-2 whitespace-pre-wrap">
+                Bucket PUBLIC vẫn cần Policy để client (anon) được phép upload.
+                {"\n\n"}Trong Supabase → Storage → Policies → tạo policy cho bucket "{BUCKET}".
+                {"\n\n"}Ví dụ Policy (chọn INSERT/SELECT/DELETE nếu cần):
+                {"\n"}- INSERT: bucket_id = '{BUCKET}'
+                {"\n"}- SELECT: bucket_id = '{BUCKET}'
+                {"\n"}- DELETE: bucket_id = '{BUCKET}'
+              </p>
+            </div>
+          </CardContent>
+        </Card>
       </motion.div>
     </div>
   );
