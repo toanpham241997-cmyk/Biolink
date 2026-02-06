@@ -574,7 +574,7 @@ export default function FilesPage() {
 
         <h1 className="text-2xl font-extrabold mb-2">Up file & lấy link tải</h1>
         <p className="text-sm text-muted-foreground mb-4">
-          Host: <span className="font-bold">Supabase Storage</span> • Bucket:{" "}
+          <span className="font-bold">Công Cụ Miễn Phí</span> • Bucket:{" "}
           <span className="font-bold">{BUCKET}</span>
         </p>
 
@@ -592,7 +592,7 @@ export default function FilesPage() {
                   <ul className="text-sm text-muted-foreground list-disc pl-5 space-y-1">
                     <li>Chọn tối đa <b>{MAX_FILES}</b> file (≤ <b>{MAX_MB_PER_FILE}MB/file</b>) rồi bấm Upload.</li>
                     <li>Upload xong sẽ có <b>link tải public</b> (ép tải bằng <b>?download</b>).</li>
-                    <li>Nếu gặp <b>403 Unauthorized / Compact JWS</b> → thường do <b>ANON KEY sai</b> hoặc <b>Policy chưa cho INSERT</b>.</li>
+                  
                   </ul>
                 </div>
               </div>
@@ -745,13 +745,13 @@ export default function FilesPage() {
             {/* Remote list */}
             <div className="space-y-3">
               <div className="flex items-center justify-between">
-                <p className="font-extrabold text-lg">Files trên Supabase</p>
+                <p className="font-extrabold text-lg">Files Của Bạn</p>
                 <p className="text-xs text-muted-foreground">{remoteList.length} mục</p>
               </div>
 
               {remoteList.length === 0 ? (
                 <div className="p-4 rounded-[26px] bg-white/70 dark:bg-card/60 game-border text-sm text-muted-foreground">
-                  Chưa có file nào (hoặc chưa có quyền LIST). Hãy upload để tạo link tải.
+                  Chưa có file nào. Hãy upload để tạo link tải.
                 </div>
               ) : (
                 <div className="space-y-2">
@@ -864,14 +864,14 @@ export default function FilesPage() {
 
             {/* Policy note */}
             <div className="p-4 rounded-[26px] bg-amber-50 dark:bg-amber-950/20 game-border">
-              <p className="font-extrabold text-amber-700 dark:text-amber-300">Nếu bạn vẫn bị 403 Unauthorized</p>
+              <p className="font-extrabold text-amber-700 dark:text-amber-300">Nếu bạn bị lỗi hãy liên hệ với chúng tôi</p>
               <p className="text-sm text-amber-700/90 dark:text-amber-300/90 mt-2 whitespace-pre-wrap">
                 Bucket PUBLIC vẫn cần Policy để client (anon) được phép upload.
-                {"\n\n"}Trong Supabase → Storage → Policies → tạo policy cho bucket "{BUCKET}".
+                {"\n\n"}Hãy Chỉ Liên Hệ Khi Đã Thực Sự lỗi "{BUCKET}".
                 {"\n\n"}Ví dụ Policy (chọn INSERT/SELECT/DELETE nếu cần):
-                {"\n"}- INSERT: bucket_id = '{BUCKET}'
-                {"\n"}- SELECT: bucket_id = '{BUCKET}'
-                {"\n"}- DELETE: bucket_id = '{BUCKET}'
+                {"\n"}- Ấn Vào Icon Zalo (home)
+                {"\n"}- Ấn Vào Icon Facebook (home)
+                {"\n"}- Ấn Vào Icon Telegram (home)
               </p>
             </div>
           </CardContent>
