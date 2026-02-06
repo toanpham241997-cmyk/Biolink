@@ -27,6 +27,10 @@ const FALLBACK_DATA: BioData = {
       "UI/UX Design",
       "Game Dev",
       "Cloud Architecture",
+      "Html / Js / Css",
+      "Hack Game ",
+      "C# / C++",
+      "Android / Ios App",
     ],
   },
 
@@ -40,7 +44,7 @@ const FALLBACK_DATA: BioData = {
         {
           id: 1,
           categoryId: 1,
-          title: "Hack Menu",
+          title: "Link 1",
           url: "https://your-portfolio.com",
           icon: "Link",
           order: 1,
@@ -48,7 +52,7 @@ const FALLBACK_DATA: BioData = {
         {
           id: 2,
           categoryId: 1,
-          title: "GitHub",
+          title: "Link 2",
           url: "https://github.com/yourname",
           icon: "Link",
           order: 2,
@@ -56,7 +60,7 @@ const FALLBACK_DATA: BioData = {
         {
           id: 3,
           categoryId: 1,
-          title: "CV / Resume",
+          title: "Link 3",
           url: "https://drive.google.com/",
           icon: "Link",
           order: 3,
@@ -64,7 +68,7 @@ const FALLBACK_DATA: BioData = {
         {
           id: 4,
           categoryId: 1,
-          title: "Blog",
+          title: "Link 4",
           url: "https://medium.com/@yourname",
           icon: "Link",
           order: 4,
@@ -72,7 +76,7 @@ const FALLBACK_DATA: BioData = {
         {
           id: 5,
           categoryId: 1,
-          title: "Case Study",
+          title: "Link 5",
           url: "https://notion.so/",
           icon: "Link",
           order: 5,
@@ -80,7 +84,7 @@ const FALLBACK_DATA: BioData = {
         {
           id: 6,
           categoryId: 1,
-          title: "Demo App",
+          title: "Link 6",
           url: "https://yourapp.onrender.com",
           icon: "Link",
           order: 6,
@@ -97,7 +101,7 @@ const FALLBACK_DATA: BioData = {
         {
           id: 101,
           categoryId: 2,
-          title: "Facebook",
+          title: "Link 1",
           url: "https://facebook.com/yourname",
           icon: "Link",
           order: 1,
@@ -105,7 +109,7 @@ const FALLBACK_DATA: BioData = {
         {
           id: 102,
           categoryId: 2,
-          title: "Instagram",
+          title: "Link 2",
           url: "https://instagram.com/yourname",
           icon: "Link",
           order: 2,
@@ -113,7 +117,7 @@ const FALLBACK_DATA: BioData = {
         {
           id: 103,
           categoryId: 2,
-          title: "TikTok",
+          title: "Link 3",
           url: "https://tiktok.com/@yourname",
           icon: "Link",
           order: 3,
@@ -121,7 +125,7 @@ const FALLBACK_DATA: BioData = {
         {
           id: 104,
           categoryId: 2,
-          title: "YouTube",
+          title: "Link 4",
           url: "https://youtube.com/@yourname",
           icon: "Link",
           order: 4,
@@ -129,7 +133,7 @@ const FALLBACK_DATA: BioData = {
         {
           id: 105,
           categoryId: 2,
-          title: "X (Twitter)",
+          title: "Link5",
           url: "https://x.com/yourname",
           icon: "Link",
           order: 5,
@@ -137,7 +141,7 @@ const FALLBACK_DATA: BioData = {
         {
           id: 106,
           categoryId: 2,
-          title: "LinkedIn",
+          title: "Link 6",
           url: "https://linkedin.com/in/yourname",
           icon: "Link",
           order: 6,
@@ -154,7 +158,7 @@ const FALLBACK_DATA: BioData = {
         {
           id: 201,
           categoryId: 3,
-          title: "VS Code",
+          title: "Link 1",
           url: "https://code.visualstudio.com",
           icon: "Link",
           order: 1,
@@ -162,7 +166,7 @@ const FALLBACK_DATA: BioData = {
         {
           id: 202,
           categoryId: 3,
-          title: "Node.js",
+          title: "Link 2",
           url: "https://nodejs.org",
           icon: "Link",
           order: 2,
@@ -170,7 +174,7 @@ const FALLBACK_DATA: BioData = {
         {
           id: 203,
           categoryId: 3,
-          title: "React",
+          title: "Link 3",
           url: "https://react.dev",
           icon: "Link",
           order: 3,
@@ -178,7 +182,7 @@ const FALLBACK_DATA: BioData = {
         {
           id: 204,
           categoryId: 3,
-          title: "Render",
+          title: "Link 4",
           url: "https://render.com",
           icon: "Link",
           order: 4,
@@ -186,7 +190,7 @@ const FALLBACK_DATA: BioData = {
         {
           id: 205,
           categoryId: 3,
-          title: "PostgreSQL",
+          title: "Link 5",
           url: "https://www.postgresql.org",
           icon: "Link",
           order: 5,
@@ -194,7 +198,7 @@ const FALLBACK_DATA: BioData = {
         {
           id: 206,
           categoryId: 3,
-          title: "Drizzle ORM",
+          title: "Ljnk 6",
           url: "https://orm.drizzle.team",
           icon: "Link",
           order: 6,
@@ -204,14 +208,14 @@ const FALLBACK_DATA: BioData = {
 
     {
       id: 4,
-      title: "Regedit Free Fire",
+      title: "Chứng Chỉ Iod",
       icon: "https://sf-static.upanhlaylink.com/img/image_20260205b62651422685f3ee68f5e7be6587979a.jpg",
       order: 4,
       links: [
         {
           id: 301,
           categoryId: 4,
-          title: "Steam",
+          title: "Link 1",
           url: "https://store.steampowered.com",
           icon: "Link",
           order: 1,
@@ -219,7 +223,7 @@ const FALLBACK_DATA: BioData = {
         {
           id: 302,
           categoryId: 4,
-          title: "Epic Games",
+          title: "Link 2",
           url: "https://store.epicgames.com",
           icon: "Link",
           order: 2,
@@ -227,7 +231,7 @@ const FALLBACK_DATA: BioData = {
         {
           id: 303,
           categoryId: 4,
-          title: "PlayStation",
+          title: "Link 4",
           url: "https://www.playstation.com",
           icon: "Link",
           order: 3,
@@ -235,7 +239,7 @@ const FALLBACK_DATA: BioData = {
         {
           id: 304,
           categoryId: 4,
-          title: "Xbox",
+          title: "Link 5",
           url: "https://www.xbox.com",
           icon: "Link",
           order: 4,
@@ -243,7 +247,7 @@ const FALLBACK_DATA: BioData = {
         {
           id: 305,
           categoryId: 4,
-          title: "Nintendo",
+          title: "Link 6",
           url: "https://www.nintendo.com",
           icon: "Link",
           order: 5,
@@ -251,7 +255,7 @@ const FALLBACK_DATA: BioData = {
         {
           id: 306,
           categoryId: 4,
-          title: "My Game Clips",
+          title: "Link 7",
           url: "https://youtube.com/@yourname",
           icon: "Link",
           order: 6,
@@ -268,7 +272,7 @@ const FALLBACK_DATA: BioData = {
         {
           id: 401,
           categoryId: 5,
-          title: "Email",
+          title: "Link 1",
           url: "mailto:yourmail@gmail.com",
           icon: "Link",
           order: 1,
@@ -276,7 +280,7 @@ const FALLBACK_DATA: BioData = {
         {
           id: 402,
           categoryId: 5,
-          title: "Zalo",
+          title: "Link 2",
           url: "https://zalo.me/yourid",
           icon: "Link",
           order: 2,
@@ -284,7 +288,7 @@ const FALLBACK_DATA: BioData = {
         {
           id: 403,
           categoryId: 5,
-          title: "Telegram",
+          title: "Link 3",
           url: "https://t.me/yourname",
           icon: "Link",
           order: 3,
@@ -292,7 +296,7 @@ const FALLBACK_DATA: BioData = {
         {
           id: 404,
           categoryId: 5,
-          title: "WhatsApp",
+          title: "Ljnk 4",
           url: "https://wa.me/your-number",
           icon: "Link",
           order: 4,
@@ -300,7 +304,7 @@ const FALLBACK_DATA: BioData = {
         {
           id: 405,
           categoryId: 5,
-          title: "Messenger",
+          title: "Link 5",
           url: "https://m.me/yourname",
           icon: "Link",
           order: 5,
@@ -308,7 +312,7 @@ const FALLBACK_DATA: BioData = {
         {
           id: 406,
           categoryId: 5,
-          title: "Booking / Meeting",
+          title: "Link 6",
           url: "https://cal.com/yourname",
           icon: "Link",
           order: 6,
