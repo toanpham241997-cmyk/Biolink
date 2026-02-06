@@ -17,7 +17,7 @@ function Router() {
       {/* ✅ Upload page */}
       <Route path="/upload" component={UploadPage} />
       <Route path="/chat" component={ChatPage} />
-       <Route path="/orders" component={OrdersPage} />
+        <Route path="/orders" component={OrdersPage} />
       {/* ✅ 404 luôn để CUỐI */}
       <Route component={NotFound} />
     </Switch>
