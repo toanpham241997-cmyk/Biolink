@@ -54,15 +54,378 @@ async function safeCopy(text: string) {
   }
 }
 
+function sleep(ms: number) {
+  return new Promise((r) => setTimeout(r, ms));
+}
+
+/** =========================
+ * OFFLINE “SMART” BOT LOGIC
+ * (Intent + memory + safety)
+ * ========================= */
+
+type BotMemory = {
+  turns: number;
+  userName?: string;
+  topic?: string; // chủ đề đang nói
+  lastUserText?: string;
+  mood?: "friendly" | "serious";
+};
+
+function norm(s: string) {
+  return (s || "")
+    .toLowerCase()
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function pick<T>(arr: T[]) {
+  return arr[Math.floor(Math.random() * arr.length)];
+}
+
+function nowText() {
+  const d = new Date();
+  const time = d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+  const date = d.toLocaleDateString();
+  return `Bây giờ là ${time} • ${date}.`;
+}
+
+/** chặn chủ đề xấu: hack/cheat/phishing/malware... */
+function isBadTopic(t: string) {
+  const bad = [
+    "hack",
+    "cheat",
+    "crack",
+    "bypass",
+    "ddos",
+    "botnet",
+    "keylogger",
+    "phishing",
+    "steal",
+    "đánh cắp",
+    "lừa đảo",
+    "chiếm quyền",
+    "free fire hack",
+    "pubg hack",
+    "tool hack",
+    "regedit hack",
+    "aimbot",
+    "wallhack",
+  ];
+  return bad.some((k) => t.includes(k));
+}
+
+/** nhận diện ý định (intent) */
+type Intent =
+  | "greet"
+  | "who"
+  | "time"
+  | "math"
+  | "name_set"
+  | "help"
+  | "web_dev"
+  | "upload"
+  | "chatbot"
+  | "contact"
+  | "bad"
+  | "unknown";
+
+function detectIntent(t: string): Intent {
+  if (!t) return "unknown";
+
+  if (isBadTopic(t)) return "bad";
+
+  if (/(^|\b)(hi|hello|hey|chào|xin chào|alo|hê lô|helo)(\b|$)/.test(t)) return "greet";
+  if (t.includes("bạn là ai") || t.includes("mày là ai") || t.includes("ai vậy")) return "who";
+  if (t.includes("mấy giờ") || t.includes("bây giờ") || t.includes("hôm nay") || t.includes("ngày")) return "time";
+
+  // đặt tên: "tôi tên là", "mình tên", "tên tôi"
+  if (t.includes("tôi tên là") || t.includes("mình tên là") || t.includes("tên tôi là")) return "name_set";
+
+  if (t.includes("giúp") || t.includes("help") || t.includes("hướng dẫn") || t.includes("làm sao")) return "help";
+
+  // web/dev
+  const webKeys = ["react", "vite", "tsx", "tailwind", "render", "deploy", "router", "route", "404", "github"];
+  if (webKeys.some((k) => t.includes(k))) return "web_dev";
+
+  // upload / lấy link ảnh
+  const upKeys = ["upload", "upanhlaylink", "imgbb", "lấy link", "up ảnh", "đăng ảnh"];
+  if (upKeys.some((k) => t.includes(k))) return "upload";
+
+  // chatbot
+  const botKeys = ["chatbot", "bot", "ai", "trợ lý", "assistant"];
+  if (botKeys.some((k) => t.includes(k))) return "chatbot";
+
+  // contact/mail
+  if (t.includes("liên hệ") || t.includes("email") || t.includes("gmail") || t.includes("contact")) return "contact";
+
+  // math: có phép tính
+  if (/[0-9]/.test(t) && /[+\-*/()%]/.test(t)) return "math";
+
+  return "unknown";
+}
+
+/** cố gắng tách tên người dùng */
+function extractName(raw: string): string | undefined {
+  const t = raw.trim();
+  const patterns = [
+    /tôi tên là\s+(.+)/i,
+    /mình tên là\s+(.+)/i,
+    /tên tôi là\s+(.+)/i,
+  ];
+  for (const p of patterns) {
+    const m = t.match(p);
+    if (m?.[1]) {
+      const name = m[1].trim().replace(/[.!?]+$/g, "");
+      if (name.length >= 2 && name.length <= 30) return name;
+    }
+  }
+  return undefined;
+}
+
+/** tính toán an toàn (chỉ toán tử cơ bản) */
+function extractMathExpression(text: string) {
+  const cleaned = text
+    .replace(/[,]/g, ".")
+    .replace(/[^\d+\-*/().%\s]/g, "")
+    .trim();
+  if (!/[+\-*/()%]/.test(cleaned)) return "";
+  if (cleaned.length > 60) return "";
+  return cleaned;
+}
+
+function safeEval(expr: string): string {
+  // eslint-disable-next-line no-new-func
+  const fn = new Function(`return (${expr});`);
+  const v = fn();
+  if (typeof v !== "number" || !Number.isFinite(v)) return "Mình không tính được biểu thức này 😅";
+  const out = Math.abs(v) >= 1e10 ? v.toExponential(4) : Number(v.toFixed(8)).toString();
+  return out;
+}
+
+/** trả lời thông minh hơn: dựa trên intent + memory + follow-up */
+function generateOfflineReply(
+  userTextRaw: string,
+  hasAttachments: boolean,
+  mem: BotMemory,
+): { reply: string; nextMem: BotMemory } {
+  const userText = (userTextRaw || "").trim();
+  const t = norm(userText);
+
+  let nextMem: BotMemory = { ...mem, turns: mem.turns + 1, lastUserText: userTextRaw };
+
+  // Nếu người dùng chỉ gửi file/ảnh
+  if (!t && hasAttachments) {
+    return {
+      reply:
+        "Mình nhận được ảnh/file rồi 👍\nBạn muốn mình làm gì với nó? Ví dụ:\n• đặt tên/ghi chú\n• gợi ý dùng ở mục nào trong bio\n• tạo caption / mô tả ngắn",
+      nextMem,
+    };
+  }
+
+  const intent = detectIntent(t);
+
+  // CHẶN
+  if (intent === "bad") {
+    nextMem.topic = "safe";
+    return {
+      reply:
+        "Mình không thể hỗ trợ nội dung **hack/cheat/xâm nhập/lừa đảo**.\n\n" +
+        "Nếu bạn muốn, mình giúp theo hướng **hợp pháp**:\n" +
+        "• Tối ưu FPS/ping, setting\n" +
+        "• Bảo mật tài khoản, chống mất nick\n" +
+        "• Học lập trình web/app đúng luật\n",
+      nextMem,
+    };
+  }
+
+  // Greet
+  if (intent === "greet") {
+    const name = mem.userName ? ` ${mem.userName}` : "";
+    nextMem.mood = "friendly";
+    return {
+      reply: pick([
+        `Chào${name}! 😄 Bạn muốn hỏi gì nè?`,
+        `Hello${name}! ✨ Bạn cần mình giúp phần web hay phần chat?`,
+        `Chào${name} 👋 Cứ hỏi thoải mái nhé!`,
+      ]),
+      nextMem,
+    };
+  }
+
+  // Who
+  if (intent === "who") {
+    nextMem.topic = "intro";
+    return {
+      reply:
+        "Mình là **Bot Offline** chạy ngay trong web của bạn 🤖\n" +
+        "Mình không dùng API nên không “biết mọi thứ”, nhưng mình hiểu **ý cơ bản** bằng logic:\n" +
+        "• chào hỏi • tính toán • hướng dẫn web/react • upload ảnh • gợi ý cải tiến giao diện\n\n" +
+        "Bạn muốn hỏi chủ đề nào?",
+      nextMem,
+    };
+  }
+
+  // Set name
+  if (intent === "name_set") {
+    const name = extractName(userTextRaw);
+    if (name) {
+      nextMem.userName = name;
+      nextMem.topic = "greet";
+      return {
+        reply: `Ok ${name} 😄 Mình nhớ tên bạn rồi! Bạn muốn làm gì tiếp?`,
+        nextMem,
+      };
+    }
+    return {
+      reply: "Bạn viết theo mẫu giúp mình nhé: **Tôi tên là ...**",
+      nextMem,
+    };
+  }
+
+  // Time/date
+  if (intent === "time") {
+    nextMem.topic = "time";
+    return { reply: nowText(), nextMem };
+  }
+
+  // Math
+  if (intent === "math") {
+    const expr = extractMathExpression(t);
+    if (!expr) return { reply: "Bạn gửi biểu thức rõ hơn giúp mình (vd: 12.5*3-7).", nextMem };
+    try {
+      const ans = safeEval(expr);
+      nextMem.topic = "math";
+      return { reply: `Kết quả: **${ans}**`, nextMem };
+    } catch {
+      return { reply: "Mình không tính được biểu thức này 😅", nextMem };
+    }
+  }
+
+  // Help (gợi ý menu)
+  if (intent === "help") {
+    nextMem.topic = "help";
+    return {
+      reply:
+        "Mình có thể giúp bạn mấy việc này 👇\n" +
+        "1) **Web/React/Render/GitHub**: sửa lỗi, thêm trang, menu, icon\n" +
+        "2) **Upload ảnh lấy link**: hướng dẫn / tạo page upload\n" +
+        "3) **Chatbot offline**: cải tiến UI, hiệu ứng nhắn tin\n\n" +
+        "Bạn chọn **1 / 2 / 3** nhé.",
+      nextMem,
+    };
+  }
+
+  // Web dev
+  if (intent === "web_dev") {
+    nextMem.topic = "web_dev";
+    const name = mem.userName ? ` ${mem.userName}` : "";
+    return {
+      reply:
+        `Ok${name} 👍 Nếu bạn đang làm web bio của bạn, đây là các lỗi hay gặp:\n` +
+        "• **404 khi vào /upload hoặc /chat**: `App.tsx` phải có Route và `NotFound` để cuối.\n" +
+        "• **Icon bằng link**: nơi render icon phải kiểm tra URL và dùng `<img />`.\n" +
+        "• **Menu không hiện**: thiếu state `isMenuOpen` hoặc thiếu `return`/thẻ đóng.\n\n" +
+        "Bạn đang kẹt ở lỗi nào? Dán 5–10 dòng quanh chỗ lỗi là mình chỉ đúng.",
+      nextMem,
+    };
+  }
+
+  // Upload
+  if (intent === "upload") {
+    nextMem.topic = "upload";
+    return {
+      reply:
+        "Về **Upload ảnh lấy link**:\n" +
+        "• Nếu không dùng API: bạn có thể mở trang up ảnh bên ngoài.\n" +
+        "• Nếu muốn tích hợp vào web: tạo page `/upload` + dùng ImgBB (cần key) hoặc server upload.\n\n" +
+        "Bạn muốn kiểu nào: **(A) mở trang up ảnh ngoài** hay **(B) có page upload trong web**?",
+      nextMem,
+    };
+  }
+
+  // Chatbot
+  if (intent === "chatbot") {
+    nextMem.topic = "chatbot";
+    return {
+      reply:
+        "Chatbot offline vẫn làm được trải nghiệm đẹp:\n" +
+        "• hiệu ứng typing • lưu lịch sử • trả lời theo chủ đề • chặn nội dung xấu\n\n" +
+        "Bạn muốn bot tập trung chủ đề nào? Ví dụ: **web/React**, **upload ảnh**, hay **tư vấn học lập trình**.",
+      nextMem,
+    };
+  }
+
+  // Contact
+  if (intent === "contact") {
+    nextMem.topic = "contact";
+    return {
+      reply:
+        "Nếu bạn muốn **gửi Gmail liên hệ** ở cuối web:\n" +
+        "• đơn giản nhất là dùng `mailto:`\n" +
+        "• hoặc làm form rồi gửi qua service (nhưng sẽ cần backend/email provider)\n\n" +
+        "Bạn muốn kiểu **mailto** hay **form gửi thật**?",
+      nextMem,
+    };
+  }
+
+  // UNKNOWN: cố “hiểu” theo ngữ cảnh gần nhất
+  const topic = mem.topic || "general";
+  const name = mem.userName ? ` ${mem.userName}` : "";
+
+  if (topic === "web_dev") {
+    return {
+      reply:
+        `Mình hiểu rồi${name}. Bạn mô tả thêm giúp mình:\n` +
+        "• Bạn đang sửa file nào? (Home.tsx / App.tsx / CategoryAccordion…)\n" +
+        "• Lỗi hiện ra là gì? (ảnh/log)\n\n" +
+        "Dán đoạn code lỗi, mình chỉ đúng dòng cần sửa.",
+      nextMem,
+    };
+  }
+
+  if (topic === "upload") {
+    return {
+      reply:
+        `Ok${name}. Nếu bạn muốn **không cần key** thì cách nhanh nhất là:\n` +
+        "• bấm nút mở trang up ảnh ngoài → up → copy link\n\n" +
+        "Còn nếu muốn tích hợp trong web thì sẽ cần 1 dịch vụ host ảnh (đa số có key).",
+      nextMem,
+    };
+  }
+
+  return {
+    reply: pick([
+      `Ok${name} 👍 Bạn nói rõ hơn 1 chút: bạn muốn kết quả như thế nào?`,
+      `Mình hiểu ý bạn${name}. Bạn muốn mình trả lời theo kiểu **ngắn gọn** hay **hướng dẫn từng bước**?`,
+      `Bạn cho mình thêm thông tin: bạn đang làm phần nào trong web (Home/Menu/Upload/Chat)?`,
+    ]),
+    nextMem,
+  };
+}
+
 export default function ChatPage() {
-  const [messages, setMessages] = useState<ChatMessage[]>(() => [
-    {
-      id: uid("m"),
-      role: "assistant",
-      text: "Xin chào! Mình là Bot AI 😄\nBạn có thể nhắn tin, gửi ảnh/file (để hiển thị trong chat).",
-      createdAt: Date.now(),
-    },
-  ]);
+  const [messages, setMessages] = useState<ChatMessage[]>(() => {
+    try {
+      const raw = localStorage.getItem("offline_chat_messages_v1");
+      if (raw) return JSON.parse(raw) as ChatMessage[];
+    } catch {}
+    return [
+      {
+        id: uid("m"),
+        role: "assistant",
+        text: "Xin chào! Mình là Bot Offline 😄\nBạn có thể nhắn tin, gửi ảnh/file (để hiển thị trong chat).",
+        createdAt: Date.now(),
+      },
+    ];
+  });
+
+  const [mem, setMem] = useState<BotMemory>(() => {
+    try {
+      const raw = localStorage.getItem("offline_chat_memory_v1");
+      if (raw) return JSON.parse(raw) as BotMemory;
+    } catch {}
+    return { turns: 0, topic: "general", mood: "friendly" };
+  });
 
   const [input, setInput] = useState("");
   const [isSending, setIsSending] = useState(false);
@@ -72,6 +435,19 @@ export default function ChatPage() {
 
   const listRef = useRef<HTMLDivElement | null>(null);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
+
+  // persist chat
+  useEffect(() => {
+    try {
+      localStorage.setItem("offline_chat_messages_v1", JSON.stringify(messages));
+    } catch {}
+  }, [messages]);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem("offline_chat_memory_v1", JSON.stringify(mem));
+    } catch {}
+  }, [mem]);
 
   // auto scroll bottom
   useEffect(() => {
@@ -110,7 +486,6 @@ export default function ChatPage() {
 
     return () => {
       alive = false;
-      // revoke previews
       pickedAttachments.forEach((a) => {
         if (a.previewUrl) URL.revokeObjectURL(a.previewUrl);
       });
@@ -123,7 +498,6 @@ export default function ChatPage() {
   }, [input, pickedFiles.length, isSending]);
 
   const clearPicked = () => {
-    // revoke previews
     pickedAttachments.forEach((a) => {
       if (a.previewUrl) URL.revokeObjectURL(a.previewUrl);
     });
@@ -136,11 +510,12 @@ export default function ChatPage() {
     if (!files) return;
     const arr = Array.from(files);
 
-    // giới hạn an toàn để khỏi crash mobile
+    // giới hạn an toàn cho mobile
     const MAX_FILES = 6;
     const MAX_EACH_MB = 8;
-
-    const limited = arr.slice(0, MAX_FILES).filter((f) => f.size <= MAX_EACH_MB * 1024 * 1024);
+    const limited = arr
+      .slice(0, MAX_FILES)
+      .filter((f) => f.size <= MAX_EACH_MB * 1024 * 1024);
 
     setPickedFiles(limited);
   };
@@ -149,10 +524,12 @@ export default function ChatPage() {
     setError("");
     if (!canSend) return;
 
+    const userText = input.trim();
+
     const userMsg: ChatMessage = {
       id: uid("m"),
       role: "user",
-      text: input.trim(),
+      text: userText,
       createdAt: Date.now(),
       attachments: pickedAttachments.length ? pickedAttachments : undefined,
     };
@@ -175,27 +552,16 @@ export default function ChatPage() {
     ]);
 
     try {
-      /**
-       * GỌI API SERVER:
-       * - Bạn tạo route: POST /api/chat
-       * - Nhận { message: string } trả về { reply: string }
-       *
-       * Nếu bạn muốn gửi file lên server: dùng FormData + multer (server).
-       * Hiện tại client sẽ chỉ gửi TEXT để tránh lỗi server.
-       */
-      const res = await fetch("/api/chat", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ message: userMsg.text }),
-      });
+      // giả lập “đang suy nghĩ”
+      await sleep(450 + Math.random() * 650);
 
-      const json = await res.json().catch(() => ({}));
+      const { reply, nextMem } = generateOfflineReply(
+        userText,
+        !!userMsg.attachments?.length,
+        mem,
+      );
 
-      if (!res.ok) {
-        throw new Error(json?.error || "Chat API lỗi (server chưa tạo /api/chat?)");
-      }
-
-      const replyText = String(json?.reply ?? "Mình chưa nhận được reply từ server.");
+      setMem(nextMem);
 
       setMessages((prev) =>
         prev
@@ -203,12 +569,12 @@ export default function ChatPage() {
           .concat({
             id: uid("m"),
             role: "assistant",
-            text: replyText,
+            text: reply,
             createdAt: Date.now(),
           }),
       );
     } catch (e: any) {
-      const msg = e?.message || "Lỗi gửi tin nhắn";
+      const msg = e?.message || "Lỗi bot offline";
       setError(msg);
       setMessages((prev) =>
         prev
@@ -216,7 +582,7 @@ export default function ChatPage() {
           .concat({
             id: uid("m"),
             role: "assistant",
-            text: `⚠️ ${msg}\n\nGợi ý: Bạn cần tạo server route POST /api/chat.`,
+            text: `⚠️ ${msg}`,
             createdAt: Date.now(),
           }),
       );
@@ -231,14 +597,18 @@ export default function ChatPage() {
   };
 
   const clearChat = () => {
-    setMessages([
-      {
-        id: uid("m"),
-        role: "assistant",
-        text: "Đã xoá lịch sử chat. Bạn muốn mình giúp gì?",
-        createdAt: Date.now(),
-      },
-    ]);
+    const first: ChatMessage = {
+      id: uid("m"),
+      role: "assistant",
+      text: "Đã xoá lịch sử chat. Bạn muốn mình giúp gì? 😄",
+      createdAt: Date.now(),
+    };
+    setMessages([first]);
+    setMem({ turns: 0, topic: "general", mood: "friendly" });
+    try {
+      localStorage.setItem("offline_chat_messages_v1", JSON.stringify([first]));
+      localStorage.setItem("offline_chat_memory_v1", JSON.stringify({ turns: 0, topic: "general", mood: "friendly" }));
+    } catch {}
   };
 
   return (
@@ -260,7 +630,7 @@ export default function ChatPage() {
             </div>
             <div className="leading-tight">
               <p className="font-bold">Bot AI</p>
-              <p className="text-xs text-muted-foreground">Chat • gửi ảnh/file</p>
+              <p className="text-xs text-muted-foreground">Offline • hiểu theo logic</p>
             </div>
           </div>
         </div>
@@ -279,18 +649,13 @@ export default function ChatPage() {
       <div className="pt-24 pb-28 px-4 sm:px-6 max-w-3xl mx-auto">
         <Card className="game-border bg-white/60 dark:bg-card/60 backdrop-blur-sm">
           <CardContent className="pt-6">
-            {/* error */}
             {!!error && (
               <div className="mb-4 p-3 rounded-2xl bg-white/70 dark:bg-card/60 game-border text-destructive font-semibold text-sm">
                 {error}
               </div>
             )}
 
-            {/* messages */}
-            <div
-              ref={listRef}
-              className="h-[58vh] sm:h-[62vh] overflow-y-auto pr-1 space-y-3"
-            >
+            <div ref={listRef} className="h-[58vh] sm:h-[62vh] overflow-y-auto pr-1 space-y-3">
               <AnimatePresence initial={false}>
                 {messages.map((m) => (
                   <motion.div
@@ -301,16 +666,18 @@ export default function ChatPage() {
                     transition={{ type: "spring", stiffness: 200, damping: 22 }}
                     className={`flex ${m.role === "user" ? "justify-end" : "justify-start"}`}
                   >
-                    <div className={`max-w-[88%] sm:max-w-[80%]`}>
+                    <div className="max-w-[88%] sm:max-w-[80%]">
                       <div className="flex items-center gap-2 mb-1">
                         <div
                           className={`w-8 h-8 rounded-xl flex items-center justify-center game-border ${
-                            m.role === "user" ? "bg-primary text-white" : "bg-white/80 dark:bg-card/60 text-primary"
+                            m.role === "user"
+                              ? "bg-primary text-white"
+                              : "bg-white/80 dark:bg-card/60 text-primary"
                           }`}
                         >
                           {m.role === "user" ? <User className="w-4 h-4" /> : <Bot className="w-4 h-4" />}
                         </div>
-                        <p className="text-xs text-muted-foreground">
+ <p className="text-xs text-muted-foreground">
                           {m.role === "user" ? "Bạn" : "Bot"} •{" "}
                           {new Date(m.createdAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
                         </p>
@@ -393,13 +760,10 @@ export default function ChatPage() {
       <div className="fixed bottom-0 left-0 right-0 z-50">
         <div className="max-w-3xl mx-auto px-4 sm:px-6 pb-4">
           <div className="p-3 rounded-3xl game-border bg-white/70 dark:bg-card/60 backdrop-blur-sm">
-            {/* attachments preview before send */}
             {!!pickedAttachments.length && (
               <div className="mb-2 p-2 rounded-2xl bg-white/60 dark:bg-card/50 game-border">
                 <div className="flex items-center justify-between">
-                  <p className="text-xs font-bold text-muted-foreground">
-                    Đính kèm ({pickedAttachments.length})
-                  </p>
+                  <p className="text-xs font-bold text-muted-foreground">Đính kèm ({pickedAttachments.length})</p>
                   <button
                     onClick={clearPicked}
                     className="text-xs font-bold px-2 py-1 rounded-lg bg-white/70 dark:bg-card/60 game-border hover:scale-[1.02] active:scale-[0.99] transition"
@@ -432,7 +796,7 @@ export default function ChatPage() {
                 multiple
                 accept="image/*,.pdf,.txt,.doc,.docx"
                 className="hidden"
-                onChange={(e) => onPickFiles(e.target.files)}
+                onChange={(e) => setPickedFiles(Array.from(e.target.files || []))}
               />
 
               <button
@@ -469,11 +833,12 @@ export default function ChatPage() {
             </div>
 
             <p className="mt-2 text-[11px] text-muted-foreground">
-              Lưu ý: Client hiện chỉ gửi <b>text</b> lên <b>/api/chat</b>. Ảnh/file đang hiển thị trong UI; muốn bot đọc file/ảnh thì cần server xử lý thêm.
+              Bot đang chạy <b>offline</b> (không API). Ảnh/file chỉ hiển thị trong UI.
             </p>
           </div>
         </div>
       </div>
     </div>
   );
-  }
+}
+                                    }
