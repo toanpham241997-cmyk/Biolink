@@ -61,6 +61,7 @@ function Modal({
     </div>
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Link } from "wouter";
+import { motion } from "framer-motion";
 import {
   ArrowLeft,
   Upload,
