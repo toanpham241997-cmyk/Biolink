@@ -266,10 +266,10 @@ export default function UploadPage() {
           <div className="leading-tight">
             <h1 className="text-xl font-extrabold inline-flex items-center gap-2">
               <Sparkles className="w-5 h-5 text-primary" />
-              Upload ảnh & copy link
+              Upload ảnh & Url Link
             </h1>
             <p className="text-xs text-muted-foreground">
-              Chọn ảnh → Upload → Copy link ảnh (Host: ImgBB)
+              Chọn ảnh → Upload → Copy link ảnh 
             </p>
           </div>
         </div>
