@@ -7,9 +7,9 @@ export type OrderItem = {
   id: string;
   title: string;
   desc: string;
+  detail: string;
   image: string;
   downloadUrl: string; // ✅ mỗi đơn 1 link khác nhau
-  detail: string;
 };
 
 export const ORDERS: OrderItem[] = [
@@ -18,69 +18,128 @@ export const ORDERS: OrderItem[] = [
     title: "Nick Free Fire tự chọn",
     desc: "Tặng pack miễn phí • Full ảnh • Tải nhanh.",
     detail:
-      "✅ Gồm: ảnh minh hoạ + hướng dẫn nhận.\n✅ Giá: 0₫.\n📌 Bấm “Nhận ngay” để mở link tải.",
+      "✅ Đơn hàng miễn phí (0₫).\n✅ Có ảnh minh hoạ + hướng dẫn nhận.\n✅ Link nhận riêng theo đơn.\n📌 Bấm “Nhận ngay” để mở link tải.",
     image:
-      "https://images.unsplash.com/photo-1542751110-97427bbecf20?q=80&w=1200&auto=format&fit=crop",
-    downloadUrl: "https://example.com/free-1", // 🔥 đổi link thật của bạn
+      "https://images.unsplash.com/photo-1542751110-97427bbecf20?q=80&w=1400&auto=format&fit=crop",
+    downloadUrl: "https://example.com/free-1",
   },
   {
     id: "UEU1502891",
     title: "Nick Free Fire tự chọn",
     desc: "Kho đồ đẹp • Nhiều skin • Free download.",
     detail:
-      "✅ Full ảnh + mô tả.\n✅ Giá: 0₫.\n📌 Link riêng theo đơn hàng.",
+      "✅ Giá 0₫.\n✅ Full ảnh minh hoạ.\n✅ Nhận nhanh.\n📌 Bấm “Nhận ngay” để mở link tải riêng.",
     image:
-      "https://images.unsplash.com/photo-1511512578047-dfb367046420?q=80&w=1200&auto=format&fit=crop",
+      "https://images.unsplash.com/photo-1511512578047-dfb367046420?q=80&w=1400&auto=format&fit=crop",
     downloadUrl: "https://example.com/free-2",
   },
   {
     id: "UEU1455786",
     title: "Nick Free Fire tự chọn",
     desc: "Full ảnh minh hoạ • Có hướng dẫn nhận.",
-    detail: "✅ Giá: 0₫.\n✅ Có mô tả chi tiết.\n👉 Nhận ngay để tải.",
+    detail:
+      "✅ Giá 0₫.\n✅ Có mô tả chi tiết.\n✅ Link riêng theo đơn.\n📌 Nhấn “Nhận ngay” để tải.",
     image:
-      "https://images.unsplash.com/photo-1526401485004-2fda9f6b2f09?q=80&w=1200&auto=format&fit=crop",
+      "https://images.unsplash.com/photo-1526401485004-2fda9f6b2f09?q=80&w=1400&auto=format&fit=crop",
     downloadUrl: "https://example.com/free-3",
   },
   {
     id: "UEU1486001",
     title: "Nick Free Fire tự chọn",
     desc: "Bonus pack • Nhận nhanh • Free.",
-    detail: "✅ 0₫.\n✅ Có bonus.\n👉 Bấm nhận ngay để mở link.",
+    detail:
+      "✅ Giá 0₫.\n✅ Có bonus pack.\n✅ Link riêng theo đơn.\n📌 Nhấn “Nhận ngay” để mở link nhận.",
     image:
-      "https://images.unsplash.com/photo-1507238691740-187a5b1d37b?q=80&w=1200&auto=format&fit=crop",
+      "https://images.unsplash.com/photo-1507238691740-187a5b1d37b?q=80&w=1400&auto=format&fit=crop",
     downloadUrl: "https://example.com/free-4",
   },
-
-  // ✅ tạo thêm 8 đơn, mỗi đơn 1 link khác nhau
-  ...Array.from({ length: 8 }).map((_, i) => {
-    const idx = i + 5;
-    const id = `UEU${(1200000 + idx * 777).toString()}`;
-    return {
-      id,
-      title: "Nick Free Fire tự chọn",
-      desc: "Miễn phí 0₫ • Bấm vào để xem chi tiết & nhận link riêng.",
-      detail:
-        "✅ Đơn hàng miễn phí.\n✅ Có ảnh + nội dung.\n📌 Nhận ngay để mở link tải riêng.",
-      image:
-        "https://images.unsplash.com/photo-1550745165-9bc0b252726f?q=80&w=1200&auto=format&fit=crop",
-      downloadUrl: `https://example.com/free-${idx}`, // ✅ khác nhau
-    };
-  }),
+  {
+    id: "UEU1203885",
+    title: "Nick Free Fire tự chọn",
+    desc: "Miễn phí 0₫ • Full ảnh • Nhận ngay.",
+    detail:
+      "✅ Giá 0₫.\n✅ Có ảnh + mô tả.\n✅ Link tải riêng.\n📌 Bấm nhận ngay để mở link.",
+    image:
+      "https://images.unsplash.com/photo-1550745165-9bc0b252726f?q=80&w=1400&auto=format&fit=crop",
+    downloadUrl: "https://example.com/free-5",
+  },
+  {
+    id: "UEU1204662",
+    title: "Nick Free Fire tự chọn",
+    desc: "Free download • Tải nhanh • Không mất phí.",
+    detail:
+      "✅ Giá 0₫.\n✅ Có nội dung hướng dẫn.\n✅ Link nhận riêng.\n📌 Nhấn “Nhận ngay” để tải.",
+    image:
+      "https://images.unsplash.com/photo-1515879218367-8466d910aaa4?q=80&w=1400&auto=format&fit=crop",
+    downloadUrl: "https://example.com/free-6",
+  },
+  {
+    id: "UEU1205449",
+    title: "Nick Free Fire tự chọn",
+    desc: "Tặng pack miễn phí • Full ảnh minh hoạ.",
+    detail:
+      "✅ Giá 0₫.\n✅ Full ảnh.\n✅ Link riêng theo đơn.\n📌 Bấm “Nhận ngay” để mở link nhận.",
+    image:
+      "https://images.unsplash.com/photo-1556438064-2d7646166914?q=80&w=1400&auto=format&fit=crop",
+    downloadUrl: "https://example.com/free-7",
+  },
+  {
+    id: "UEU1206226",
+    title: "Nick Free Fire tự chọn",
+    desc: "Giao nhanh • Miễn phí • Dễ nhận.",
+    detail:
+      "✅ Giá 0₫.\n✅ Có mô tả chi tiết.\n✅ Link tải riêng.\n📌 Nhấn “Nhận ngay” để tải.",
+    image:
+      "https://images.unsplash.com/photo-1518770660439-4636190af475?q=80&w=1400&auto=format&fit=crop",
+    downloadUrl: "https://example.com/free-8",
+  },
+  {
+    id: "UEU1207003",
+    title: "Nick Free Fire tự chọn",
+    desc: "Free download • Không phí • Nhận liền.",
+    detail:
+      "✅ Giá 0₫.\n✅ Có ảnh minh hoạ.\n✅ Link riêng.\n📌 Bấm nhận ngay để mở link tải.",
+    image:
+      "https://images.unsplash.com/photo-1519183071298-a2962be96f1c?q=80&w=1400&auto=format&fit=crop",
+    downloadUrl: "https://example.com/free-9",
+  },
+  {
+    id: "UEU1207780",
+    title: "Nick Free Fire tự chọn",
+    desc: "Miễn phí 0₫ • Tải nhanh • Full ảnh.",
+    detail:
+      "✅ Giá 0₫.\n✅ Có mô tả.\n✅ Link nhận riêng.\n📌 Nhấn “Nhận ngay” để tải.",
+    image:
+      "https://images.unsplash.com/photo-1518779578993-ec3579fee39f?q=80&w=1400&auto=format&fit=crop",
+    downloadUrl: "https://example.com/free-10",
+  },
+  {
+    id: "UEU1208557",
+    title: "Nick Free Fire tự chọn",
+    desc: "Free pack • Full ảnh • Nhận nhanh.",
+    detail:
+      "✅ Giá 0₫.\n✅ Có hướng dẫn.\n✅ Link riêng.\n📌 Nhấn “Nhận ngay” để mở link nhận.",
+    image:
+      "https://images.unsplash.com/photo-1493711662062-fa541adb3fc8?q=80&w=1400&auto=format&fit=crop",
+    downloadUrl: "https://example.com/free-11",
+  },
+  {
+    id: "UEU1209334",
+    title: "Nick Free Fire tự chọn",
+    desc: "Miễn phí 0₫ • Nhận liền • Không mất phí.",
+    detail:
+      "✅ Giá 0₫.\n✅ Có ảnh + mô tả.\n✅ Link tải riêng.\n📌 Bấm “Nhận ngay” để tải về.",
+    image:
+      "https://images.unsplash.com/photo-1525182008055-f88b95ff7980?q=80&w=1400&auto=format&fit=crop",
+    downloadUrl: "https://example.com/free-12",
+  },
 ];
 
-/** ✅ Chọn style viền: "round" bo cong hoặc "sharp" nhọn hơn */
+/** ✅ Chọn style viền: "round" (bo cong) hoặc "sharp" (góc nhọn hơn) */
 const BORDER_STYLE: "round" | "sharp" = "round";
 
-const clsCard =
-  BORDER_STYLE === "round"
-    ? "rounded-[26px]"
-    : "rounded-[14px]"; // góc nhọn hơn
-
-const clsImg =
-  BORDER_STYLE === "round"
-    ? "rounded-[22px]"
-    : "rounded-[12px]";
+const clsCard = BORDER_STYLE === "round" ? "rounded-[26px]" : "rounded-[14px]";
+const clsImg = BORDER_STYLE === "round" ? "rounded-[22px]" : "rounded-[12px]";
 
 export default function OrdersPage() {
   return (
@@ -106,7 +165,7 @@ export default function OrdersPage() {
         </div>
       </div>
 
-      {/* Grid: mobile 2 cột, tablet 3, desktop 4 */}
+      {/* Grid */}
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
         {ORDERS.map((item, idx) => (
           <motion.div
@@ -115,7 +174,7 @@ export default function OrdersPage() {
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.02 * idx }}
           >
-            {/* ✅ bấm cả card -> qua chi tiết */}
+            {/* ✅ bấm card -> sang trang chi tiết */}
             <Link href={`/orders/${item.id}`} className="block">
               <Card
                 className={[
@@ -125,7 +184,6 @@ export default function OrdersPage() {
                 ].join(" ")}
               >
                 <CardContent className="p-3">
-                  {/* Ảnh + Ribbon */}
                   <div className={["relative overflow-hidden", clsImg].join(" ")}>
                     <div className="aspect-[16/10] w-full">
                       <img
@@ -152,11 +210,9 @@ export default function OrdersPage() {
                       </div>
                     </div>
 
-                    {/* overlay nhẹ */}
                     <div className="absolute inset-0 bg-gradient-to-t from-black/30 via-transparent to-transparent" />
                   </div>
 
-                  {/* Nội dung */}
                   <div className="pt-3 space-y-1">
                     <p className="font-extrabold text-[15px] leading-snug line-clamp-2">
                       {item.title}
@@ -168,7 +224,6 @@ export default function OrdersPage() {
                       {item.desc}
                     </p>
 
-                    {/* Giá */}
                     <div className="pt-2 flex items-end gap-2">
                       <p className="text-primary font-extrabold text-lg leading-none">
                         0₫
