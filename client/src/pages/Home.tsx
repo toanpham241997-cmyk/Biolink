@@ -223,9 +223,10 @@ const openLink = (url: string) => {
                 <CardContent className="pt-6">
                   <h3 className="font-display font-bold text-xl text-primary mb-4 text-center">About Hà Văn Huấn</h3>
                   <p className="text-muted-foreground leading-relaxed text-center">
-                    Chào mừng bạn đến với trang bio cá nhân của tôi! Tôi là một lập trình viên Full Stack 
+                    Chào mừng bạn đến với Trang Website của Tôi là một lập trình viên Full Stack 
                     với đam mê tạo ra những trải nghiệm web độc đáo và sáng tạo. Trang web này được thiết kế 
-                    với phong cách game-like nhằm mang lại sự thú vị và khác biệt cho người xem.
+                    với phong cách Packlich nhằm mang lại sự thú vị và khác biệt cho người xem.
+                    cảm ơn bạn đã ghé trang website của tôi !
                   </p>
                 </CardContent>
               </Card>
@@ -262,7 +263,7 @@ const openLink = (url: string) => {
                 <CardContent className="pt-6 text-center">
                   <h3 className="font-display font-bold text-xl text-primary mb-4">Bản Quyền</h3>
                   <p className="text-muted-foreground">
-                    © 2024 Hà Văn Huấn. Mọi quyền được bảo lưu. 
+                    © 2026 Hà Văn Huấn. Mọi quyền được bảo lưu. 
                     Trang web này được xây dựng hoàn toàn bằng tâm huyết và các công nghệ hiện đại 
                     như React, Tailwind CSS và Framer Motion.
                   </p>
@@ -280,7 +281,7 @@ const openLink = (url: string) => {
 </motion.div>
 
         <div className="mt-12 pt-8 border-t border-primary/5 text-center text-muted-foreground text-sm font-medium">
-          <p>Built with 💖 using React & Tailwind.</p>
+          <p>Bản Quyền @Dev Hvh Disney.</p>
         </div>
       </footer>
     </div>
