@@ -27,13 +27,14 @@ function setHideForOneHour() {
 }
 
 export default function WelcomeModal({
-  title = "Chào mừng bạn!",
-  description = "Đây là trang BioLink phong cách game UI. Bạn có thể mở từng mục để xem link, dự án, mạng xã hội và liên hệ.",
+  title = "WELCOME CHÀO MỪNG BẠN",
+  description = "Đây Là Trang Website Hỗ Trợ Về Mạng Xã Hội , Có Nhiều Tính Năng Và nhiều Chức Năng Độc Đáo , Sẽ Có Thể Giúp ích Cho Bạn Rất Nhiều 🌐",
   features = [
-    "Giao diện sáng – hiệu ứng game",
-    "Mỗi mục có icon riêng, hỗ trợ icon bằng link",
-    "Bấm vào link để mở tab mới",
-    "Có thẻ liên hệ ở cuối trang",
+    "UP ẢNH LẤY LINK TRỰC TIẾP",
+    "UP FILES LẤY LINK TRỰC TIẾP",
+    "BOT TRỢ LÍ CỦA WEBSITE",
+    "SOURE MIỄN PHÍ ĐA DẠNG",
+    "SHOP BÁN ACCOUNT, HACK GAME , APP",
   ],
   onClose,
 }: WelcomeModalProps) {
@@ -147,7 +148,7 @@ export default function WelcomeModal({
                 transition={{ delay: 0.2 }}
               >
                 <div className="text-sm font-bold text-foreground mb-2">
-                  Tính năng nổi bật
+                  TÍNH NĂNG TRÊN WEBSITE 
                 </div>
                 <ul className="space-y-2">
                   {features.map((f, i) => (
@@ -178,7 +179,7 @@ export default function WelcomeModal({
                     shadow-[0_10px_30px_rgba(14,165,233,0.35)]
                   "
                 >
-                  Vào web ngay
+                  CONTINUE INSET
                 </button>
 
                 <button
