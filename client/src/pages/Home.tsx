@@ -160,6 +160,19 @@ const openLink = (url: string) => {
             </div>
           </button>
 
+          <button
+  onClick={() => navigate("/files")}
+  className="w-full flex items-center gap-3 p-4 rounded-2xl bg-white/70 dark:bg-card/60 game-border hover:scale-[1.02] active:scale-[0.99] transition"
+>
+            <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center">
+              <Bot className="w-5 h-5 text-primary" />
+            </div>
+            <div className="text-left">
+              <p className="font-bold">up files</p>
+              <p className="text-xs text-muted-foreground">up files lấy link</p>
+            </div>
+          </button>
+
           {/* Optional: nút đóng */}
           <button
             onClick={() => setIsMenuOpen(false)}
