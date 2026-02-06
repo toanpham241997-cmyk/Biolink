@@ -6,30 +6,30 @@ import {
   Copy,
   ExternalLink,
   FileUp,
-  Link2,
   Loader2,
   Trash2,
   CheckCircle2,
   XCircle,
   Info,
+  Image as ImageIcon,
+  FileText,
   RefreshCw,
 } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
-import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 
-/** =========================
- *  ENV (Vite)
- *  ========================= */
+/* =========================
+   ENV (Vite)
+========================= */
 const SUPABASE_URL = (import.meta.env.VITE_SUPABASE_URL as string | undefined)?.trim();
 const SUPABASE_ANON_KEY = (import.meta.env.VITE_SUPABASE_ANON_KEY as string | undefined)?.trim();
 const BUCKET = ((import.meta.env.VITE_SUPABASE_BUCKET as string | undefined)?.trim() || "upload").trim();
 
-/** =========================
- *  Types
- *  ========================= */
+/* =========================
+   TYPES
+========================= */
 type ToastKind = "success" | "error" | "info";
 
-type UploadItem = {
+type UploadedItem = {
   id: string;
   name: string;
   size: number;
@@ -39,9 +39,22 @@ type UploadItem = {
   createdAt: number;
 };
 
-/** =========================
- *  Utils
- *  ========================= */
+type ModalState = {
+  open: boolean;
+  kind: ToastKind;
+  title: string;
+  message?: string;
+};
+
+type ToastState = {
+  open: boolean;
+  kind: ToastKind;
+  message: string;
+};
+
+/* =========================
+   HELPERS
+========================= */
 function uid(prefix = "id") {
   return `${prefix}_${Math.random().toString(16).slice(2)}_${Date.now()}`;
 }
@@ -54,355 +67,398 @@ function formatBytes(bytes: number) {
   return `${(bytes / Math.pow(k, i)).toFixed(i ? 1 : 0)} ${sizes[i]}`;
 }
 
-function safeFileName(name: string) {
-  // bỏ ký tự lạ để URL đẹp hơn
-  const cleaned = name
-    .normalize("NFKD")
-    .replace(/[\u0300-\u036f]/g, "")
-    .replace(/[^a-zA-Z0-9._-]+/g, "_")
-    .replace(/_+/g, "_")
-    .replace(/^_+|_+$/g, "");
-  return cleaned || `file_${Date.now()}`;
+async function safeCopy(text: string) {
+  try {
+    await navigator.clipboard.writeText(text);
+    return true;
+  } catch {
+    return false;
+  }
 }
 
-function isLikelyImage(type: string, name: string) {
-  if (type.startsWith("image/")) return true;
-  return /\.(png|jpg|jpeg|gif|webp|bmp)$/i.test(name);
+function buildPublicUrl(bucket: string, path: string) {
+  // Public URL chuẩn của Supabase Storage:
+  // https://xxxx.supabase.co/storage/v1/object/public/<bucket>/<path>
+  return `${SUPABASE_URL}/storage/v1/object/public/${bucket}/${path}`;
 }
 
-/** =========================
- *  Modal "Swal-like" (No library)
- *  ========================= */
-function SwalModal({
+function requireEnv() {
+  if (!SUPABASE_URL || !SUPABASE_ANON_KEY) {
+    return {
+      ok: false as const,
+      error:
+        "Thiếu ENV. Bạn cần set VITE_SUPABASE_URL và VITE_SUPABASE_ANON_KEY trong Render Environment hoặc file .env",
+    };
+  }
+  return { ok: true as const };
+}
+
+/* =========================
+   UI: Toast
+========================= */
+function Toast({
   open,
   kind,
-  title,
   message,
-  buttonText = "OK",
   onClose,
-}: {
-  open: boolean;
-  kind: ToastKind;
-  title: string;
-  message?: string;
-  buttonText?: string;
-  onClose: () => void;
-}) {
+}: ToastState & { onClose: () => void }) {
   if (!open) return null;
-
-  const Icon =
-    kind === "success" ? CheckCircle2 : kind === "error" ? XCircle : Info;
-
-  const ring =
-    kind === "success"
-      ? "ring-green-500/30"
-      : kind === "error"
-      ? "ring-rose-500/30"
-      : "ring-sky-500/30";
-
-  const iconColor =
-    kind === "success"
-      ? "text-green-500"
-      : kind === "error"
-      ? "text-rose-500"
-      : "text-sky-500";
+  const Icon = kind === "success" ? CheckCircle2 : kind === "error" ? XCircle : Info;
 
   return (
-    <div className="fixed inset-0 z-[60] bg-black/45 backdrop-blur-[2px] flex items-center justify-center px-4">
+    <div className="fixed top-4 left-0 right-0 z-50 px-4 flex justify-center">
       <motion.div
-        initial={{ opacity: 0, y: 16, scale: 0.98 }}
+        initial={{ opacity: 0, y: -12, scale: 0.98 }}
         animate={{ opacity: 1, y: 0, scale: 1 }}
-        exit={{ opacity: 0, y: 16, scale: 0.98 }}
-        className={`w-full max-w-sm rounded-[26px] bg-white/95 dark:bg-card/95 shadow-2xl ring-1 ${ring} game-border`}
+        exit={{ opacity: 0, y: -12 }}
+        className="w-full max-w-md rounded-2xl bg-white/90 dark:bg-card/90 backdrop-blur-sm game-border px-4 py-3 shadow-lg flex items-center gap-3"
       >
-        <div className="p-6 flex flex-col items-center text-center">
-          <div className="w-16 h-16 rounded-[22px] bg-white/70 dark:bg-card/60 game-border flex items-center justify-center">
-            <Icon className={`w-10 h-10 ${iconColor}`} />
-          </div>
-
-          <h3 className="mt-4 text-2xl font-extrabold">{title}</h3>
-
-          {message ? (
-            <p className="mt-2 text-sm text-muted-foreground leading-relaxed">
-              {message}
-            </p>
-          ) : null}
-
-          <button
-            onClick={onClose}
-            className="mt-5 w-full py-3 rounded-2xl bg-primary text-white font-extrabold game-border hover:opacity-95 active:scale-[0.99] transition"
-          >
-            {buttonText}
-          </button>
-        </div>
+        <Icon className="w-5 h-5 text-primary" />
+        <p className="text-sm font-semibold flex-1">{message}</p>
+        <button
+          onClick={onClose}
+          className="text-xs font-bold px-3 py-1 rounded-xl bg-primary/10 hover:bg-primary/20 transition"
+        >
+          Đóng
+        </button>
       </motion.div>
     </div>
   );
 }
 
-/** =========================
- *  Toast (top) - cũng không cần lib
- *  ========================= */
-function Toast({
+/* =========================
+   UI: Modal (swal-like)
+========================= */
+function Modal({
   open,
   kind,
   title,
+  message,
   onClose,
-}: {
-  open: boolean;
-  kind: ToastKind;
-  title: string;
-  onClose: () => void;
-}) {
-  useEffect(() => {
-    if (!open) return;
-    const t = setTimeout(() => onClose(), 2200);
-    return () => clearTimeout(t);
-  }, [open, onClose]);
-
-  const Icon =
-    kind === "success" ? CheckCircle2 : kind === "error" ? XCircle : Info;
-
-  const bg =
-    kind === "success"
-      ? "bg-green-500/15"
-      : kind === "error"
-      ? "bg-rose-500/15"
-      : "bg-sky-500/15";
-
-  const color =
-    kind === "success"
-      ? "text-green-700 dark:text-green-300"
-      : kind === "error"
-      ? "text-rose-700 dark:text-rose-300"
-      : "text-sky-700 dark:text-sky-300";
+}: ModalState & { onClose: () => void }) {
+  if (!open) return null;
+  const Icon = kind === "success" ? CheckCircle2 : kind === "error" ? XCircle : Info;
 
   return (
-    <AnimatePresence>
-      {open ? (
-        <motion.div
-          initial={{ opacity: 0, y: -14, scale: 0.98 }}
-          animate={{ opacity: 1, y: 0, scale: 1 }}
-          exit={{ opacity: 0, y: -14, scale: 0.98 }}
-          className="fixed top-4 left-1/2 -translate-x-1/2 z-[70] w-[92%] max-w-md"
+    <div className="fixed inset-0 z-50 bg-black/40 flex items-center justify-center px-4">
+      <motion.div
+        initial={{ opacity: 0, scale: 0.96, y: 10 }}
+        animate={{ opacity: 1, scale: 1, y: 0 }}
+        className="w-full max-w-sm rounded-[28px] bg-white dark:bg-card p-6 text-center game-border shadow-2xl"
+      >
+        <div className="w-16 h-16 mx-auto rounded-3xl bg-primary/10 flex items-center justify-center game-border">
+          <Icon className="w-9 h-9 text-primary" />
+        </div>
+        <h3 className="mt-4 text-xl font-extrabold">{title}</h3>
+        {message && (
+          <p className="mt-2 text-sm text-muted-foreground whitespace-pre-wrap">{message}</p>
+        )}
+        <button
+          onClick={onClose}
+          className="mt-5 w-full py-3 rounded-2xl bg-primary text-white font-extrabold game-border hover:opacity-95 active:scale-[0.99] transition"
         >
-          <div className={`rounded-2xl p-3 ${bg} game-border backdrop-blur-sm`}>
-            <div className="flex items-center gap-2">
-              <Icon className={`w-5 h-5 ${color}`} />
-              <p className={`text-sm font-extrabold ${color}`}>{title}</p>
-            </div>
-          </div>
-        </motion.div>
-      ) : null}
-    </AnimatePresence>
+          OK
+        </button>
+      </motion.div>
+    </div>
   );
 }
 
-/** =========================
- *  Main Page
- *  ========================= */
-export default function FilesPage() {
-  const [file, setFile] = useState<File | null>(null);
-  const [items, setItems] = useState<UploadItem[]>(() => {
-    // lưu lịch sử local cho đẹp
-    try {
-      const raw = localStorage.getItem("uploads_history_v1");
-      const parsed = raw ? (JSON.parse(raw) as UploadItem[]) : [];
-      return Array.isArray(parsed) ? parsed : [];
-    } catch {
-      return [];
-    }
-  });
+/* =========================
+   XHR upload with progress
+   (fetch không có progress chuẩn)
+========================= */
+function uploadToSupabaseXHR(opts: {
+  bucket: string;
+  path: string;
+  file: File;
+  onProgress: (pct: number) => void;
+}): Promise<void> {
+  const { bucket, path, file, onProgress } = opts;
 
-  const [isUploading, setIsUploading] = useState(false);
-  const [progress, setProgress] = useState<number>(0);
-  const [error, setError] = useState<string>("");
-
-  const [toast, setToast] = useState<{ open: boolean; kind: ToastKind; title: string }>({
-    open: false,
-    kind: "info",
-    title: "",
-  });
-
-  const [modal, setModal] = useState<{
-    open: boolean;
-    kind: ToastKind;
-    title: string;
-    message?: string;
-  }>({
-    open: false,
-    kind: "info",
-    title: "",
-    message: "",
-  });
-
-  const fileInputRef = useRef<HTMLInputElement | null>(null);
-
-  const previewName = useMemo(() => file?.name ?? "", [file]);
-  const previewSize = useMemo(() => (file ? formatBytes(file.size) : ""), [file]);
-  const previewType = useMemo(() => file?.type || "", [file]);
-
-  const supabase: SupabaseClient | null = useMemo(() => {
-    if (!SUPABASE_URL || !SUPABASE_ANON_KEY) return null;
-    return createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-  }, []);
-
-  useEffect(() => {
-    try {
-      localStorage.setItem("uploads_history_v1", JSON.stringify(items.slice(0, 30)));
-    } catch {}
-  }, [items]);
-
-  const showToast = (kind: ToastKind, title: string) => {
-    setToast({ open: true, kind, title });
-  };
-
-  const showModal = (kind: ToastKind, title: string, message?: string) => {
-    setModal({ open: true, kind, title, message });
-  };
-
-  const closeModal = () => setModal((p) => ({ ...p, open: false }));
-
-  const resetAll = () => {
-    setFile(null);
-    setError("");
-    setProgress(0);
-    if (fileInputRef.current) fileInputRef.current.value = "";
-    showToast("info", "Đã làm mới");
-  };
-
-  /** Upload lên Supabase Storage (public bucket) */
-  const uploadFile = async () => {
-    setError("");
-    setProgress(0);
-
-    if (!supabase) {
-      showModal(
-        "error",
-        "Thiếu ENV Supabase",
-        "Bạn cần set VITE_SUPABASE_URL + VITE_SUPABASE_ANON_KEY trong Environment (Render) hoặc .env"
-      );
+  return new Promise((resolve, reject) => {
+    if (!SUPABASE_URL || !SUPABASE_ANON_KEY) {
+      reject(new Error("Thiếu SUPABASE_URL hoặc SUPABASE_ANON_KEY"));
       return;
     }
 
-    if (!file) {
-      showToast("error", "Bạn chưa chọn file");
+    const endpoint = `${SUPABASE_URL}/storage/v1/object/${bucket}/${encodeURIComponent(path)}`;
+
+    const xhr = new XMLHttpRequest();
+    xhr.open("POST", endpoint, true);
+    xhr.setRequestHeader("Authorization", `Bearer ${SUPABASE_ANON_KEY}`);
+    xhr.setRequestHeader("x-upsert", "false");
+
+    xhr.upload.onprogress = (e) => {
+      if (!e.lengthComputable) return;
+      const pct = Math.round((e.loaded / e.total) * 100);
+      onProgress(pct);
+    };
+
+    xhr.onerror = () => reject(new Error("Failed to fetch (mạng/CORS)"));
+    xhr.onload = () => {
+      if (xhr.status >= 200 && xhr.status < 300) resolve();
+      else reject(new Error(xhr.responseText || `Upload lỗi: ${xhr.status}`));
+    };
+
+    xhr.send(file);
+  });
+}
+
+/* =========================
+   Delete file (OPTIONAL)
+   -> chỉ hoạt động nếu bạn set policy cho phép delete
+========================= */
+async function deleteFromSupabase(bucket: string, path: string) {
+  if (!SUPABASE_URL || !SUPABASE_ANON_KEY) {
+    throw new Error("Thiếu SUPABASE_URL hoặc SUPABASE_ANON_KEY");
+  }
+  const endpoint = `${SUPABASE_URL}/storage/v1/object/${bucket}/${encodeURIComponent(path)}`;
+
+  const res = await fetch(endpoint, {
+    method: "DELETE",
+    headers: {
+      Authorization: `Bearer ${SUPABASE_ANON_KEY}`,
+    },
+  });
+
+  // Nếu policy không cho delete -> sẽ lỗi 401/403
+  if (!res.ok) {
+    const text = await res.text().catch(() => "");
+    throw new Error(text || `Không xoá được (status ${res.status}). Có thể policy chưa cho phép.`);
+  }
+}
+
+/* =========================
+   LocalStorage store
+========================= */
+const LS_KEY = "uploaded_files_v1";
+
+function loadLocal(): UploadedItem[] {
+  try {
+    const raw = localStorage.getItem(LS_KEY);
+    if (!raw) return [];
+    const arr = JSON.parse(raw) as UploadedItem[];
+    if (!Array.isArray(arr)) return [];
+    return arr
+      .filter((x) => x && x.id && x.url)
+      .sort((a, b) => b.createdAt - a.createdAt);
+  } catch {
+    return [];
+  }
+}
+
+function saveLocal(list: UploadedItem[]) {
+  localStorage.setItem(LS_KEY, JSON.stringify(list.slice(0, 50))); // giữ tối đa 50
+}
+
+/* =========================
+   PAGE
+========================= */
+export default function FilesPage() {
+  const [picked, setPicked] = useState<File[]>([]);
+  const [items, setItems] = useState<UploadedItem[]>([]);
+  const [isUploading, setIsUploading] = useState(false);
+  const [progress, setProgress] = useState(0);
+
+  const [toast, setToast] = useState<ToastState>({ open: false, kind: "info", message: "" });
+  const [modal, setModal] = useState<ModalState>({ open: false, kind: "info", title: "" });
+
+  const inputRef = useRef<HTMLInputElement | null>(null);
+
+  useEffect(() => {
+    setItems(loadLocal());
+  }, []);
+
+  // Auto hide toast
+  useEffect(() => {
+    if (!toast.open) return;
+    const t = setTimeout(() => setToast((p) => ({ ...p, open: false })), 2200);
+    return () => clearTimeout(t);
+  }, [toast.open]);
+
+  const canUpload = useMemo(() => picked.length > 0 && !isUploading, [picked.length, isUploading]);
+
+  const pickFiles = (files: FileList | null) => {
+    if (!files) return;
+    const arr = Array.from(files);
+
+    const MAX_FILES = 6;
+    const MAX_EACH_MB = 50;
+
+    const ok = arr
+      .slice(0, MAX_FILES)
+      .filter((f) => f.size <= MAX_EACH_MB * 1024 * 1024);
+
+    if (ok.length !== arr.slice(0, MAX_FILES).length) {
+      setToast({
+        open: true,
+        kind: "info",
+        message: `Giới hạn: tối đa ${MAX_FILES} file, mỗi file ≤ ${MAX_EACH_MB}MB`,
+      });
+    }
+
+    setPicked(ok);
+  };
+
+  const clearPicked = () => {
+    setPicked([]);
+    if (inputRef.current) inputRef.current.value = "";
+  };
+
+  const openUrl = (url: string) => window.open(url, "_blank", "noopener,noreferrer");
+
+  const onCopy = async (text: string) => {
+    const ok = await safeCopy(text);
+    if (ok) {
+      setModal({
+        open: true,
+        kind: "success",
+        title: "Copy thành công",
+        message: "Link đã được copy vào clipboard.",
+      });
+    } else {
+      setModal({
+        open: true,
+        kind: "error",
+        title: "Copy thất bại",
+        message: "Trình duyệt chặn clipboard. Hãy copy thủ công.",
+      });
+    }
+  };
+
+  const uploadAll = async () => {
+    const env = requireEnv();
+    if (!env.ok) {
+      setModal({ open: true, kind: "error", title: "Thiếu cấu hình", message: env.error });
+      return;
+    }
+    if (!picked.length) {
+      setToast({ open: true, kind: "error", message: "Bạn chưa chọn file." });
       return;
     }
 
     try {
       setIsUploading(true);
+      setProgress(0);
 
-      // Tạo path unique trong bucket
-      const ext = file.name.includes(".") ? file.name.split(".").pop() : "";
-      const base = safeFileName(file.name.replace(/\.[^/.]+$/, ""));
-      const stamp = new Date().toISOString().replace(/[:.]/g, "-");
-      const path = `${stamp}_${base}${ext ? `.${ext}` : ""}`;
+      const newItems: UploadedItem[] = [];
 
-      // Supabase upload (không có progress native trên fetch, mình fake progress mượt)
-      let fake = 0;
-      const fakeTimer = window.setInterval(() => {
-        fake = Math.min(95, fake + Math.random() * 10);
-        setProgress(Math.round(fake));
-      }, 180);
+      for (let i = 0; i < picked.length; i++) {
+        const f = picked[i];
+        const safeName = f.name.replace(/[^\w.\-()+ ]+/g, "_");
+        const path = `${Date.now()}_${i + 1}_${safeName}`;
 
-      const { error: upErr } = await supabase.storage
-        .from(BUCKET)
-        .upload(path, file, {
-          cacheControl: "3600",
-          upsert: false,
-          contentType: file.type || "application/octet-stream",
+        setProgress(0);
+
+        await uploadToSupabaseXHR({
+          bucket: BUCKET,
+          path,
+          file: f,
+          onProgress: (pct) => setProgress(pct),
         });
 
-      window.clearInterval(fakeTimer);
+        const url = buildPublicUrl(BUCKET, path);
 
-      if (upErr) {
-        // Hay gặp: 403 policy / 401
-        throw new Error(
-          upErr.message ||
-            "Upload lỗi. Nếu báo 403/401: bạn chưa tạo Storage Policy cho bucket."
-        );
+        newItems.push({
+          id: uid("file"),
+          name: f.name,
+          size: f.size,
+          type: f.type || "application/octet-stream",
+          path,
+          url,
+          createdAt: Date.now(),
+        });
       }
 
-      // Lấy public url
-      const { data } = supabase.storage.from(BUCKET).getPublicUrl(path);
+      const merged = [...newItems, ...items].sort((a, b) => b.createdAt - a.createdAt);
+      setItems(merged);
+      saveLocal(merged);
 
-      const url = data?.publicUrl;
-      if (!url) throw new Error("Không lấy được publicUrl. Kiểm tra bucket có PUBLIC không.");
+      clearPicked();
 
-      setProgress(100);
-
-      const newItem: UploadItem = {
-        id: uid("u"),
-        name: file.name,
-        size: file.size,
-        type: file.type || "application/octet-stream",
-        path,
-        url,
-        createdAt: Date.now(),
-      };
-
-      setItems((prev) => [newItem, ...prev].slice(0, 30));
-      setFile(null);
-      if (fileInputRef.current) fileInputRef.current.value = "";
-
-      showToast("success", "Upload thành công!");
-      showModal("success", "Upload thành công", "Link tải đã tạo. Bấm Copy để dùng ngay.");
+      setModal({
+        open: true,
+        kind: "success",
+        title: "Upload thành công",
+        message: `Đã upload ${newItems.length} file.\nLink tải đã sẵn sàng.`,
+      });
     } catch (e: any) {
-      const msg = String(e?.message || "Upload thất bại");
-      setError(msg);
-      setProgress(0);
-      showModal("error", "Upload thất bại", msg);
+      setModal({
+        open: true,
+        kind: "error",
+        title: "Upload thất bại",
+        message: String(e?.message || e || "Failed to fetch"),
+      });
     } finally {
       setIsUploading(false);
+      setProgress(0);
     }
-  };
-
-  const copyText = async (text: string) => {
-    try {
-      await navigator.clipboard.writeText(text);
-      showToast("success", "Đã copy link!");
-      showModal("success", "Copy thành công", "Link đã được copy vào clipboard.");
-    } catch {
-      showModal(
-        "error",
-        "Copy thất bại",
-        "Trình duyệt chặn clipboard. Bạn hãy nhấn giữ vào link để copy thủ công."
-      );
-    }
-  };
-
-  const openLink = (url: string) => {
-    window.open(url, "_blank", "noopener,noreferrer");
-  };
-
-  const removeLocalItem = (id: string) => {
-    setItems((prev) => prev.filter((x) => x.id !== id));
-    showToast("info", "Đã xoá khỏi danh sách");
   };
 
   const clearHistory = () => {
     setItems([]);
-    showToast("info", "Đã xoá lịch sử");
+    saveLocal([]);
+    setToast({ open: true, kind: "success", message: "Đã xoá lịch sử hiển thị." });
   };
+
+  const removeItemUIOnly = (id: string) => {
+    const next = items.filter((x) => x.id !== id);
+    setItems(next);
+    saveLocal(next);
+  };
+
+  const deleteOnSupabaseThenRemove = async (it: UploadedItem) => {
+    try {
+      setModal({
+        open: true,
+        kind: "info",
+        title: "Đang xoá...",
+        message: "Vui lòng đợi.",
+      });
+
+      await deleteFromSupabase(BUCKET, it.path);
+
+      removeItemUIOnly(it.id);
+
+      setModal({
+        open: true,
+        kind: "success",
+        title: "Đã xoá",
+        message: "File đã được xoá khỏi Supabase (nếu policy cho phép).",
+      });
+    } catch (e: any) {
+      setModal({
+        open: true,
+        kind: "error",
+        title: "Không xoá được",
+        message: String(e?.message || e),
+      });
+    }
+  };
+
+  const isImage = (mime: string) => mime.startsWith("image/");
 
   return (
     <div className="min-h-screen px-4 pt-24 pb-16 max-w-3xl mx-auto">
-      {/* Toast */}
-      <Toast
-        open={toast.open}
-        kind={toast.kind}
-        title={toast.title}
-        onClose={() => setToast((p) => ({ ...p, open: false }))}
-      />
+      {/* Toast + Modal */}
+      <AnimatePresence>
+        {toast.open && (
+          <Toast
+            open={toast.open}
+            kind={toast.kind}
+            message={toast.message}
+            onClose={() => setToast((p) => ({ ...p, open: false }))}
+          />
+        )}
+      </AnimatePresence>
 
-      {/* Modal */}
-      <SwalModal
+      <Modal
         open={modal.open}
         kind={modal.kind}
         title={modal.title}
         message={modal.message}
-        onClose={closeModal}
+        onClose={() => setModal((p) => ({ ...p, open: false }))}
       />
 
       <motion.div initial={{ opacity: 0, y: 14 }} animate={{ opacity: 1, y: 0 }}>
@@ -410,256 +466,221 @@ export default function FilesPage() {
         <div className="flex items-center justify-between gap-3 mb-6">
           <Link
             href="/"
-            className="inline-flex items-center gap-2 px-4 py-3 rounded-2xl bg-white/70 dark:bg-card/60 game-border hover:scale-[1.02] active:scale-[0.99] transition font-extrabold"
+            className="inline-flex items-center gap-2 px-3 py-2 rounded-2xl bg-white/70 dark:bg-card/60 game-border hover:scale-[1.02] active:scale-[0.99] transition font-bold"
           >
             <ArrowLeft className="w-4 h-4" />
-            <span>Về Home</span>
+            Về Home
           </Link>
 
           <div className="flex items-center gap-2">
             <button
-              onClick={resetAll}
-              className="inline-flex items-center gap-2 px-4 py-3 rounded-2xl bg-white/70 dark:bg-card/60 game-border hover:scale-[1.02] active:scale-[0.99] transition font-extrabold"
-              title="Làm mới"
+              onClick={clearHistory}
+              className="inline-flex items-center gap-2 px-3 py-2 rounded-2xl bg-white/70 dark:bg-card/60 game-border hover:scale-[1.02] active:scale-[0.99] transition font-bold"
+              title="Xoá lịch sử hiển thị"
             >
-              <RefreshCw className="w-4 h-4" />
-              <span className="hidden sm:inline">Làm mới</span>
+              <Trash2 className="w-4 h-4" />
+              Xoá
             </button>
 
             <button
-              onClick={clearHistory}
-              className="inline-flex items-center gap-2 px-4 py-3 rounded-2xl bg-white/70 dark:bg-card/60 game-border hover:scale-[1.02] active:scale-[0.99] transition font-extrabold"
-              title="Xoá lịch sử"
+              onClick={() => window.location.reload()}
+              className="inline-flex items-center gap-2 px-3 py-2 rounded-2xl bg-white/70 dark:bg-card/60 game-border hover:scale-[1.02] active:scale-[0.99] transition font-bold"
+              title="Reload"
             >
-              <Trash2 className="w-4 h-4" />
-              <span className="hidden sm:inline">Xoá</span>
+              <RefreshCw className="w-4 h-4" />
+              Làm mới
             </button>
           </div>
         </div>
 
-        {/* Title */}
         <div className="mb-4">
-          <h1 className="text-2xl sm:text-3xl font-extrabold">Up file & lấy link tải</h1>
+          <h1 className="text-2xl font-extrabold">Up files & lấy link tải</h1>
           <p className="text-sm text-muted-foreground mt-1">
-            Upload file lên <b>Supabase Storage</b> (bucket <b>{BUCKET}</b>) → tạo <b>public link</b> để tải.
+            Upload file lên <b>Supabase Storage</b> (bucket <b>{BUCKET}</b>) → lấy link public để tải.
           </p>
         </div>
 
+        {/* Upload box */}
         <Card className="game-border bg-white/60 dark:bg-card/60 backdrop-blur-sm">
           <CardContent className="pt-6 space-y-4">
-            {/* Guide */}
-            <div className="p-4 rounded-[22px] bg-white/70 dark:bg-card/60 game-border">
+            {/* Info box */}
+            <div className="p-4 rounded-3xl bg-white/70 dark:bg-card/60 game-border">
               <div className="flex items-start gap-3">
                 <div className="w-11 h-11 rounded-2xl bg-primary/10 flex items-center justify-center game-border">
                   <FileUp className="w-5 h-5 text-primary" />
                 </div>
                 <div className="flex-1">
                   <p className="font-extrabold">Cách dùng</p>
-                  <ul className="mt-1 text-sm text-muted-foreground leading-relaxed list-disc pl-5 space-y-1">
-                    <li>Chọn file → bấm <b>Upload</b></li>
-                    <li>Upload xong sẽ hiện <b>Link tải</b> → bấm <b>Copy</b></li>
-                    <li>Nếu lỗi <b>401/403</b>: bạn cần tạo <b>Storage Policy</b> cho bucket để cho phép upload (insert).</li>
+                  <ul className="mt-1 text-sm text-muted-foreground space-y-1 list-disc pl-4">
+                    <li>Chọn tối đa 6 file (≤ 50MB/file) rồi bấm Upload.</li>
+                    <li>Upload xong sẽ có link tải public.</li>
+                    <li>Nếu “Failed to fetch” → thường do mạng/CORS/ENV sai.</li>
                   </ul>
                 </div>
               </div>
             </div>
 
-            {/* Picker */}
-            <div className="p-4 rounded-[22px] bg-white/70 dark:bg-card/60 game-border space-y-3">
-              <div className="flex items-center justify-between gap-2">
-                <p className="font-extrabold">Chọn file</p>
-                <span className="text-xs text-muted-foreground">
-                  Tips: file name sẽ được làm “safe” để link đẹp hơn.
-                </span>
-              </div>
-
+            {/* File input */}
+            <div className="space-y-3">
               <input
-                ref={fileInputRef}
+                ref={inputRef}
                 type="file"
+                multiple
                 className="w-full"
-                onChange={(e) => setFile(e.target.files?.[0] ?? null)}
+                onChange={(e) => pickFiles(e.target.files)}
               />
 
-              {file ? (
-                <div className="rounded-[22px] p-4 bg-white/60 dark:bg-card/60 game-border">
-                  <div className="flex items-start justify-between gap-3">
-                    <div className="min-w-0">
-                      <p className="font-extrabold break-all">{previewName}</p>
-                      <p className="text-sm text-muted-foreground">
-                        {previewSize} • {previewType || "unknown"}
-                      </p>
-                    </div>
+              {!!picked.length && (
+                <div className="p-4 rounded-3xl bg-white/70 dark:bg-card/60 game-border">
+                  <p className="font-extrabold mb-2">File đã chọn ({picked.length})</p>
+                  <div className="space-y-2">
+                    {picked.map((f, idx) => (
+                      <div
+                        key={`${f.name}_${idx}`}
+                        className="flex items-center justify-between gap-3 p-3 rounded-2xl bg-white/60 game-border"
+                      >
+                        <div className="flex items-center gap-2 min-w-0">
+                          {isImage(f.type) ? (
+                            <ImageIcon className="w-5 h-5 text-primary" />
+                          ) : (
+                            <FileText className="w-5 h-5 text-primary" />
+                          )}
+                          <div className="min-w-0">
+                            <p className="font-bold break-all line-clamp-1">{f.name}</p>
+                            <p className="text-xs text-muted-foreground">
+                              {formatBytes(f.size)} • {f.type || "file"}
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
 
+                  <div className="mt-3 flex items-center gap-2">
                     <button
-                      onClick={() => {
-                        setFile(null);
-                        if (fileInputRef.current) fileInputRef.current.value = "";
-                        showToast("info", "Đã bỏ chọn file");
-                      }}
-                      className="px-3 py-2 rounded-xl bg-white/70 dark:bg-card/60 game-border font-bold hover:scale-[1.02] active:scale-[0.99] transition"
+                      onClick={clearPicked}
+                      className="flex-1 py-3 rounded-2xl bg-white/70 dark:bg-card/60 game-border font-extrabold hover:scale-[1.01] active:scale-[0.99] transition"
                     >
                       Bỏ chọn
                     </button>
-                  </div>
 
-                  {isLikelyImage(file.type, file.name) ? (
-                    <div className="mt-3 rounded-[18px] overflow-hidden bg-white/60 game-border">
-                      <img
-                        src={URL.createObjectURL(file)}
-                        alt="preview"
-                        className="w-full max-h-[260px] object-contain"
-                        onLoad={(e) => {
-                          // tránh leak (release objectURL)
-                          const img = e.currentTarget;
-                          const src = img.src;
-                          setTimeout(() => URL.revokeObjectURL(src), 800);
-                        }}
-                      />
-                    </div>
-                  ) : null}
-                </div>
-              ) : (
-                <div className="text-sm text-muted-foreground">
-                  Chưa chọn file.
-                </div>
-              )}
-
-              {/* Upload Button */}
-              <button
-                onClick={uploadFile}
-                disabled={isUploading}
-                className="w-full py-3 rounded-[22px] bg-primary text-white font-extrabold shadow hover:opacity-95 disabled:opacity-60 transition flex items-center justify-center gap-2 game-border"
-              >
-                {isUploading ? (
-                  <>
-                    <Loader2 className="w-5 h-5 animate-spin" />
-                    Đang upload...
-                  </>
-                ) : (
-                  <>
-                    <FileUp className="w-5 h-5" />
-                    Upload file
-                  </>
-                )}
-              </button>
-
-              {/* Progress */}
-              {isUploading || progress > 0 ? (
-                <div className="mt-1">
-                  <div className="flex items-center justify-between text-xs text-muted-foreground mb-1">
-                    <span>Tiến trình</span>
-                    <span className="font-bold">{progress}%</span>
-                  </div>
-                  <div className="h-3 rounded-full bg-black/10 dark:bg-white/10 overflow-hidden game-border">
-                    <div
-                      className="h-full bg-primary transition-all"
-                      style={{ width: `${Math.min(100, Math.max(0, progress))}%` }}
-                    />
-                  </div>
-                </div>
-              ) : null}
-
-              {!!error ? (
-                <p className="text-sm text-destructive font-bold mt-2">{error}</p>
-              ) : null}
-
-              {/* ENV Warning */}
-              {!SUPABASE_URL || !SUPABASE_ANON_KEY ? (
-                <div className="mt-2 p-3 rounded-[18px] bg-rose-500/10 game-border">
-                  <p className="text-sm font-extrabold text-rose-600 dark:text-rose-300">
-                    Bạn chưa set ENV Supabase (VITE_SUPABASE_URL / VITE_SUPABASE_ANON_KEY).
-                  </p>
-                </div>
-              ) : null}
-            </div>
-
-            {/* History */}
-            <div className="p-4 rounded-[22px] bg-white/70 dark:bg-card/60 game-border">
-              <div className="flex items-center justify-between gap-2 mb-3">
-                <div className="flex items-center gap-2">
-                  <Link2 className="w-5 h-5 text-primary" />
-                  <p className="font-extrabold">Lịch sử link đã tạo</p>
-                </div>
-                <span className="text-xs text-muted-foreground">
-                  Lưu local (tối đa 30)
-                </span>
-              </div>
-
-              {items.length === 0 ? (
-                <p className="text-sm text-muted-foreground">Chưa có file nào.</p>
-              ) : (
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  {items.map((it) => (
-                    <div
-                      key={it.id}
-                      className="rounded-[22px] p-4 bg-white/60 dark:bg-card/60 game-border"
+                    <button
+                      onClick={uploadAll}
+                      disabled={!canUpload}
+                      className="flex-1 py-3 rounded-2xl bg-primary text-white font-extrabold game-border hover:opacity-95 disabled:opacity-60 transition flex items-center justify-center gap-2"
                     >
-                      <div className="flex items-start justify-between gap-3">
-                        <div className="min-w-0">
-                          <p className="font-extrabold break-all">{it.name}</p>
-                          <p className="text-xs text-muted-foreground mt-1">
-                            {formatBytes(it.size)} •{" "}
-                            {new Date(it.createdAt).toLocaleString()}
-                          </p>
-                        </div>
+                      {isUploading ? (
+                        <>
+                          <Loader2 className="w-5 h-5 animate-spin" />
+                          Đang upload {progress}%
+                        </>
+                      ) : (
+                        <>
+                          <FileUp className="w-5 h-5" />
+                          Upload
+                        </>
+                      )}
+                    </button>
+                  </div>
 
-                        <button
-                          onClick={() => removeLocalItem(it.id)}
-                          className="p-2 rounded-xl bg-white/70 dark:bg-card/60 game-border hover:scale-[1.02] active:scale-[0.99] transition"
-                          title="Xoá khỏi danh sách"
-                        >
-                          <Trash2 className="w-4 h-4 text-destructive" />
-                        </button>
+                  {isUploading && (
+                    <div className="mt-3">
+                      <div className="h-3 rounded-full bg-black/10 overflow-hidden game-border">
+                        <div
+                          className="h-full bg-primary transition-all"
+                          style={{ width: `${Math.min(100, Math.max(0, progress))}%` }}
+                        />
                       </div>
-
-                      <a
-                        href={it.url}
-                        target="_blank"
-                        rel="noreferrer"
-                        className="mt-3 block break-all text-primary underline font-bold"
-                      >
-                        {it.url}
-                      </a>
-
-                      <div className="mt-3 flex gap-2">
-                        <button
-                          onClick={() => copyText(it.url)}
-                          className="flex-1 py-2 rounded-2xl bg-primary/10 hover:bg-primary/20 font-extrabold transition flex items-center justify-center gap-2 game-border"
-                        >
-                          <Copy className="w-4 h-4" />
-                          Copy
-                        </button>
-
-                        <button
-                          onClick={() => openLink(it.url)}
-                          className="flex-1 py-2 rounded-2xl bg-white/70 dark:bg-card/60 font-extrabold transition flex items-center justify-center gap-2 game-border hover:scale-[1.01] active:scale-[0.99]"
-                        >
-                          <ExternalLink className="w-4 h-4" />
-                          Mở
-                        </button>
-                      </div>
-
-                      <div className="mt-3 text-xs text-muted-foreground">
-                        Bucket: <b>{BUCKET}</b> • Path: <span className="break-all">{it.path}</span>
-                      </div>
+                      <p className="mt-2 text-xs text-muted-foreground">
+                        Tiến trình: {progress}% (XHR upload)
+                      </p>
                     </div>
-                  ))}
+                  )}
                 </div>
               )}
-            </div>
-
-            {/* Help / Policy */}
-            <div className="p-4 rounded-[22px] bg-white/70 dark:bg-card/60 game-border">
-              <p className="font-extrabold">Nếu upload bị 401/403 (Policy)</p>
-              <p className="mt-1 text-sm text-muted-foreground leading-relaxed">
-                Vào <b>Supabase → Storage → Policies</b> tạo policy cho bucket <b>{BUCKET}</b> để
-                cho phép <b>insert</b> (upload) với user anonymous.
-                <br />
-                Bucket PUBLIC chỉ giúp <b>ai cũng mở link</b>, còn upload vẫn cần policy.
-              </p>
             </div>
           </CardContent>
         </Card>
+
+        {/* List uploaded */}
+        <div className="mt-6">
+          <div className="flex items-center justify-between mb-3">
+            <h2 className="text-lg font-extrabold">Lịch sử link đã tạo</h2>
+            <p className="text-xs text-muted-foreground">{items.length} mục</p>
+          </div>
+
+          {!items.length ? (
+            <div className="p-5 rounded-3xl bg-white/60 dark:bg-card/60 game-border text-sm text-muted-foreground">
+              Chưa có file nào. Hãy upload để có link tải.
+            </div>
+          ) : (
+            <div className="space-y-3">
+              {items.map((it) => (
+                <Card key={it.id} className="game-border bg-white/60 dark:bg-card/60">
+                  <CardContent className="pt-4 pb-4">
+                    <div className="flex items-start gap-3">
+                      <div className="w-12 h-12 rounded-2xl bg-primary/10 flex items-center justify-center game-border">
+                        {isImage(it.type) ? (
+                          <ImageIcon className="w-6 h-6 text-primary" />
+                        ) : (
+                          <FileText className="w-6 h-6 text-primary" />
+                        )}
+                      </div>
+
+                      <div className="flex-1 min-w-0">
+                        <p className="font-extrabold break-all line-clamp-1">{it.name}</p>
+                        <p className="text-xs text-muted-foreground">
+                          {formatBytes(it.size)} • {new Date(it.createdAt).toLocaleString()}
+                        </p>
+
+                        <a
+                          href={it.url}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="block mt-2 break-all text-primary underline font-semibold"
+                        >
+                          {it.url}
+                        </a>
+
+                        <div className="mt-3 grid grid-cols-3 gap-2">
+                          <button
+                            onClick={() => onCopy(it.url)}
+                            className="py-2 rounded-2xl bg-primary/10 hover:bg-primary/20 font-extrabold transition flex items-center justify-center gap-2"
+                          >
+                            <Copy className="w-4 h-4" />
+                            Copy
+                          </button>
+
+                          <button
+                            onClick={() => openUrl(it.url)}
+                            className="py-2 rounded-2xl bg-white/70 dark:bg-card/60 game-border font-extrabold transition flex items-center justify-center gap-2"
+                          >
+                            <ExternalLink className="w-4 h-4" />
+                            Mở
+                          </button>
+
+                          <button
+                            onClick={() => deleteOnSupabaseThenRemove(it)}
+                            className="py-2 rounded-2xl bg-white/70 dark:bg-card/60 game-border font-extrabold transition flex items-center justify-center gap-2"
+                            title="Xoá trên Supabase (cần policy cho phép)"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                            Xoá
+                          </button>
+                        </div>
+
+                        <p className="mt-2 text-[11px] text-muted-foreground">
+                          Nếu nút “Xoá” báo lỗi 401/403: bucket/policy chưa cho xoá bằng anon key
+                          (front-end). Bạn vẫn có thể “Xoá lịch sử hiển thị” ở trên.
+                        </p>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          )}
+        </div>
       </motion.div>
     </div>
   );
