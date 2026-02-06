@@ -59,21 +59,7 @@ function Modal({
         </div>
       </motion.div>
     </div>
-import { useEffect, useMemo, useRef, useState } from "react";
-import { Link } from "wouter";
-import { motion } from "framer-motion";
-import {
-  ArrowLeft,
-  Upload,
-  Copy,
-  ExternalLink,
-  Trash2,
-  FileUp,
-  CheckCircle2,
-  XCircle,
-  Info,
-  Loader2,
-} from "lucide-react";
+
 
 /** ===================== ENV ===================== */
 const SUPABASE_URL = (import.meta.env.VITE_SUPABASE_URL as string | undefined)?.trim();
