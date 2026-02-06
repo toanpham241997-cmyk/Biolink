@@ -866,9 +866,8 @@ export default function FilesPage() {
             <div className="p-4 rounded-[26px] bg-amber-50 dark:bg-amber-950/20 game-border">
               <p className="font-extrabold text-amber-700 dark:text-amber-300">Nếu bạn bị lỗi hãy liên hệ với chúng tôi</p>
               <p className="text-sm text-amber-700/90 dark:text-amber-300/90 mt-2 whitespace-pre-wrap">
-                Bucket PUBLIC vẫn cần Policy để client (anon) được phép upload.
-                {"\n\n"}Hãy Chỉ Liên Hệ Khi Đã Thực Sự lỗi "{BUCKET}".
-                {"\n\n"}Ví dụ Policy (chọn INSERT/SELECT/DELETE nếu cần):
+      
+                {"\n\n"}Hãy Chỉ Liên Hệ Khi Đã Thực Sự lỗi "{BUCKET}",
                 {"\n"}- Ấn Vào Icon Zalo (home)
                 {"\n"}- Ấn Vào Icon Facebook (home)
                 {"\n"}- Ấn Vào Icon Telegram (home)
