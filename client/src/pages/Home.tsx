@@ -1,5 +1,6 @@
 import { useBio } from "@/hooks/use-bio";
 import { Link } from "wouter";
+import { FileUp } from "lucide-react";
 import { Code2 } from "lucide-react";
 import { useLocation } from "wouter";
 import { useEffect, useState } from "react";
@@ -162,16 +163,32 @@ const openLink = (url: string) => {
 
           <button
   onClick={() => navigate("/files")}
-  className="w-full flex items-center gap-3 p-4 rounded-2xl bg-white/70 dark:bg-card/60 game-border hover:scale-[1.02] active:scale-[0.99] transition"
+  className="
+    w-full flex items-center gap-4 p-4
+    rounded-2xl
+    bg-white/70 dark:bg-card/60
+    game-border
+    hover:scale-[1.03]
+    hover:shadow-lg
+    active:scale-[0.98]
+    transition-all duration-200
+  "
 >
-             <div className="w-11 h-11 rounded-xl bg-primary/15 flex items-center justify-center">
+  {/* Icon */}
+  <div className="w-11 h-11 rounded-xl bg-primary/15 flex items-center justify-center">
     <FileUp className="w-6 h-6 text-primary" />
   </div>
-            <div className="text-left">
-              <p className="font-bold">UP FILES / LINK</p>
-              <p className="text-xs text-muted-foreground">LẤY LINK 3S </p>
-            </div>
-          </button>
+
+  {/* Text */}
+  <div className="text-left leading-tight">
+    <p className="font-bold text-sm uppercase">
+      Upload File / Link
+    </p>
+    <p className="text-xs text-muted-foreground">
+      Lấy link chỉ trong 3s ⚡
+    </p>
+  </div>
+</button>
 
           {/* Optional: nút đóng */}
           <button
