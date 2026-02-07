@@ -19,7 +19,7 @@ function Router() {
     <Switch>
       <Route path="/" component={Home} />
 
-      <Route path="/shop" component={Shop} />
+      
       <Route path="/shop/p/:parentId" component={ShopParent} />
       <Route path="/shop/i/:itemId" component={ShopItem} />
 
