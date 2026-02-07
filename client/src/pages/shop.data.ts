@@ -23,7 +23,7 @@ export const parents: ParentOrder[] = [
     title: "Gói UI Bio Premium",
     subtitle: "Full UI + animation, tối ưu mobile",
     cover:
-      "https://images.unsplash.com/photo-1526374965328-7f61d4dc18c5?q=80&w=1400&auto=format&fit=crop",
+      "https://i.ibb.co/zYmpV1S/ban-acc-free-fire-vip.gif",
     tag: "HOT",
   },
   {
@@ -31,7 +31,7 @@ export const parents: ParentOrder[] = [
     title: "Shop Template Pro",
     subtitle: "Giao diện shop đẹp + nhiều trang",
     cover:
-      "https://images.unsplash.com/photo-1523275335684-37898b6baf30?q=80&w=1400&auto=format&fit=crop",
+      "https://i.ibb.co/zYmpV1S/ban-acc-free-fire-vip.gif",
     tag: "SALE",
   },
   {
