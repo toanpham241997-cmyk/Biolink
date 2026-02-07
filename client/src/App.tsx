@@ -17,21 +17,22 @@ import Home from "@/pages/Home";
 function Router() {
   return (
     <Switch>
-      <Route path="/" component={Home} />
+      <Switch>
+  <Route path="/" component={Home} />
 
-      
-      <Route path="/shop/p/:parentId" component={ShopParent} />
-      <Route path="/shop/i/:itemId" component={ShopItem} />
+  <Route path="/shop" component={Shop} />
+  <Route path="/shop/p/:parentId" component={ShopParent} />
+  <Route path="/shop/i/:itemId" component={ShopItem} />
 
-      <Route path="/auth" component={Auth} />
-      <Route path="/files" component={FilesPage} />
-      <Route path="/upload" component={UploadPage} />
-      <Route path="/chat" component={ChatPage} />
-      <Route path="/orders" component={OrdersPage} />
-      <Route path="/orders/:id" component={OrderDetailPage} />
+  <Route path="/auth" component={Auth} />
+  <Route path="/files" component={FilesPage} />
+  <Route path="/upload" component={UploadPage} />
+  <Route path="/chat" component={ChatPage} />
+  <Route path="/orders" component={OrdersPage} />
+  <Route path="/orders/:id" component={OrderDetailPage} />
 
-      <Route component={NotFound} />
-    </Switch>
+  <Route component={NotFound} />
+</Switch>
   );
         }
 
