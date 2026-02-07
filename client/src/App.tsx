@@ -13,7 +13,7 @@ import {
   AlertTriangle,
 } from "lucide-react";
 
-import { parents, childs, formatVND } from "./shop.data";
+import { parents, childs, formatVND } from "./pages/shop.data";
 import { supabase } from "../lib/supabaseClient";
 
 /** helpers */
