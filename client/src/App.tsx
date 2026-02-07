@@ -12,6 +12,12 @@ import OrderDetailPage from "@/pages/OrderDetail";
 import UploadPage from "@/pages/Upload";
 import NotFound from "@/pages/not-found";
 
+import AccountPage from "@/pages/Account";
+import TopupCardPage from "@/pages/TopupCard";
+import TopupBankPage from "@/pages/TopupBank";
+import LichSuMuaHangPage from "@/pages/LichSuMuaHang";
+
+
 import { queryClient } from "./lib/queryClient";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
@@ -35,6 +41,12 @@ function Router() {
       <Route path="/chat" component={ChatPage} />
       <Route path="/orders" component={OrdersPage} />
       <Route path="/orders/:id" component={OrderDetailPage} />
+
+      {/* ✅ TAB MỚI */}
+      <Route path="/account" component={AccountPage} />
+      <Route path="/topup/card" component={TopupCardPage} />
+      <Route path="/topup/bank" component={TopupBankPage} />
+      <Route path="/lich-su-mua-hang" component={LichSuMuaHangPage} />
 
       {/* 404 */}
       <Route component={NotFound} />
