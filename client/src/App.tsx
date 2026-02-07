@@ -18,7 +18,7 @@ function Router() {
   return (
     <Switch>
       {/* Home */}
-      <Route path="/" component={Home} />
+      <Route path="/home" component={Home} />
 
       {/* ✅ Upload page */}
       <Route path="/upload" component={UploadPage} />
