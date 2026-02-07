@@ -1,8 +1,8 @@
-import { useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { useLocation } from "wouter";
 import { Eye, EyeOff, Lock, Mail, User, ArrowLeft, ShieldCheck } from "lucide-react";
 import ModalSwal, { SwalKind } from "../components/ModalSwal";
-import { login, register } from "../lib/auth";
+import { supabase } from "../lib/supabaseClient";
 
 function cn(...cls: (string | false | undefined | null)[]) {
   return cls.filter(Boolean).join(" ");
@@ -27,6 +27,8 @@ function strengthLabel(score: number) {
 
 export default function Auth() {
   const [loc, navigate] = useLocation();
+
+  // mode từ URL
   const mode = useMemo(() => {
     const m = new URLSearchParams(window.location.search).get("mode");
     return m === "register" ? "register" : "login";
@@ -34,12 +36,17 @@ export default function Auth() {
 
   const [tab, setTab] = useState<"login" | "register">(mode);
 
+  useEffect(() => {
+    setTab(mode);
+  }, [mode]);
+
   const [email, setEmail] = useState("");
   const [name, setName] = useState("");
   const [pw, setPw] = useState("");
   const [pw2, setPw2] = useState("");
   const [showPw, setShowPw] = useState(false);
   const [showPw2, setShowPw2] = useState(false);
+  const [loading, setLoading] = useState(false);
 
   const pwScore = useMemo(() => scorePassword(pw), [pw]);
   const pwMeta = useMemo(() => strengthLabel(pwScore), [pwScore]);
@@ -54,32 +61,67 @@ export default function Auth() {
   const openSwal = (variant: SwalKind, title: string, message?: string) =>
     setSwal({ open: true, variant, title, message });
 
-  const submit = () => {
-    if (tab === "register") {
-      if (!name.trim()) return openSwal("error", "Thiếu tên", "Vui lòng nhập tên.");
+  const closeSwal = () => setSwal((s) => ({ ...s, open: false }));
+
+  const goTab = (t: "login" | "register") => {
+    setTab(t);
+    navigate(`/auth?mode=${t}`);
+  };
+
+  const submit = async () => {
+    if (loading) return;
+
+    try {
+      setLoading(true);
+
+      if (tab === "register") {
+        if (!name.trim()) return openSwal("error", "Thiếu tên", "Vui lòng nhập tên.");
+        if (!email.trim()) return openSwal("error", "Thiếu email", "Vui lòng nhập email.");
+        if (pw.length < 6) return openSwal("error", "Mật khẩu quá ngắn", "Ít nhất 6 ký tự.");
+        if (pw !== pw2) return openSwal("error", "Không khớp", "Mật khẩu xác nhận không đúng.");
+
+        const { data, error } = await supabase.auth.signUp({
+          email: email.trim(),
+          password: pw,
+          options: {
+            data: { name: name.trim() }, // để trigger profile lấy name
+          },
+        });
+
+        if (error) return openSwal("error", "Đăng ký thất bại", error.message);
+
+        // Nếu project bật confirm email -> chưa có session
+        const hasSession = !!data.session;
+        if (!hasSession) {
+          openSwal(
+            "success",
+            "Đăng ký thành công",
+            "Vui lòng kiểm tra email để xác minh tài khoản rồi quay lại đăng nhập."
+          );
+          return;
+        }
+
+        openSwal("success", "Đăng ký thành công", "Đang chuyển về Shop…");
+        setTimeout(() => navigate("/shop"), 600);
+        return;
+      }
+
+      // login
       if (!email.trim()) return openSwal("error", "Thiếu email", "Vui lòng nhập email.");
-      if (pw.length < 6)
-        return openSwal("error", "Mật khẩu quá ngắn", "Ít nhất 6 ký tự.");
-      if (pw !== pw2)
-        return openSwal("error", "Không khớp", "Mật khẩu xác nhận không đúng.");
+      if (!pw) return openSwal("error", "Thiếu mật khẩu", "Vui lòng nhập mật khẩu.");
 
-      const res = register({ name, email, password: pw });
-      if (!res.ok) return openSwal("error", "Đăng ký thất bại", res.message);
+      const { error } = await supabase.auth.signInWithPassword({
+        email: email.trim(),
+        password: pw,
+      });
 
-      openSwal("success", "Đăng ký thành công", "Chào mừng bạn! Đang chuyển về Shop…");
+      if (error) return openSwal("error", "Đăng nhập thất bại", error.message);
+
+      openSwal("success", "Đăng nhập thành công", "Đang chuyển về Shop…");
       setTimeout(() => navigate("/shop"), 600);
-      return;
+    } finally {
+      setLoading(false);
     }
-
-    // login
-    if (!email.trim()) return openSwal("error", "Thiếu email", "Vui lòng nhập email.");
-    if (!pw) return openSwal("error", "Thiếu mật khẩu", "Vui lòng nhập mật khẩu.");
-
-    const res = login({ email, password: pw });
-    if (!res.ok) return openSwal("error", "Đăng nhập thất bại", res.message);
-
-    openSwal("success", "Đăng nhập thành công", "Đang chuyển về Shop…");
-    setTimeout(() => navigate("/shop"), 600);
   };
 
   return (
@@ -90,6 +132,7 @@ export default function Auth() {
           <button
             onClick={() => navigate("/shop")}
             className="w-11 h-11 rounded-2xl bg-white border-2 border-sky-300 shadow-sm flex items-center justify-center active:scale-[0.98] transition"
+            type="button"
           >
             <ArrowLeft className="w-5 h-5 text-sky-700" />
           </button>
@@ -104,30 +147,26 @@ export default function Auth() {
           {/* tabs */}
           <div className="grid grid-cols-2 gap-2">
             <button
-              onClick={() => {
-                setTab("login");
-                navigate("/auth?mode=login");
-              }}
+              onClick={() => goTab("login")}
               className={cn(
                 "h-11 rounded-2xl font-extrabold border-2 transition",
                 tab === "login"
                   ? "bg-sky-500 text-white border-sky-600 shadow"
                   : "bg-white text-sky-700 border-sky-300"
               )}
+              type="button"
             >
               Đăng nhập
             </button>
             <button
-              onClick={() => {
-                setTab("register");
-                navigate("/auth?mode=register");
-              }}
+              onClick={() => goTab("register")}
               className={cn(
                 "h-11 rounded-2xl font-extrabold border-2 transition",
                 tab === "register"
                   ? "bg-sky-500 text-white border-sky-600 shadow"
                   : "bg-white text-sky-700 border-sky-300"
               )}
+              type="button"
             >
               Đăng ký
             </button>
@@ -171,10 +210,7 @@ export default function Auth() {
                     </p>
                   </div>
                   <div className="mt-2 h-2 rounded-full bg-white border border-sky-200 overflow-hidden">
-                    <div
-                      className="h-full bg-sky-500"
-                      style={{ width: `${pwScore}%` }}
-                    />
+                    <div className="h-full bg-sky-500" style={{ width: `${pwScore}%` }} />
                   </div>
                   <p className="mt-2 text-[11px] text-slate-500">
                     Gợi ý: 8+ ký tự, chữ hoa, số, ký tự đặc biệt.
@@ -194,13 +230,20 @@ export default function Auth() {
 
             <button
               onClick={submit}
-              className="w-full h-12 rounded-2xl bg-sky-500 text-white font-extrabold border-2 border-sky-600 shadow active:scale-[0.99] transition"
+              disabled={loading}
+              className={cn(
+                "w-full h-12 rounded-2xl font-extrabold border-2 shadow transition",
+                loading
+                  ? "bg-slate-200 border-slate-200 text-slate-500 cursor-not-allowed"
+                  : "bg-sky-500 text-white border-sky-600 active:scale-[0.99]"
+              )}
+              type="button"
             >
-              {tab === "login" ? "Đăng nhập" : "Tạo tài khoản"}
+              {loading ? "Đang xử lý..." : tab === "login" ? "Đăng nhập" : "Tạo tài khoản"}
             </button>
 
             <p className="text-[11px] text-slate-500 text-center">
-              Demo dùng localStorage (sau này nối Supabase/Auth thật rất dễ).
+              Auth thật bằng Supabase (email/password).
             </p>
           </div>
         </div>
@@ -211,7 +254,7 @@ export default function Auth() {
         variant={swal.variant}
         title={swal.title}
         message={swal.message}
-        onClose={() => setSwal((s) => ({ ...s, open: false }))}
+        onClose={closeSwal}
       />
     </div>
   );
@@ -233,6 +276,7 @@ function Field(props: {
         value={props.value}
         onChange={(e) => props.onChange(e.target.value)}
         placeholder={props.placeholder}
+        autoComplete={props.type === "email" ? "email" : "on"}
       />
     </div>
   );
@@ -255,6 +299,7 @@ function PasswordField(props: {
         value={props.value}
         onChange={(e) => props.onChange(e.target.value)}
         placeholder={props.placeholder}
+        autoComplete="current-password"
       />
       <button
         onClick={props.toggle}
@@ -270,5 +315,4 @@ function PasswordField(props: {
       </button>
     </div>
   );
-                       }
-                                 
+                                                              }
