@@ -1,26 +1,30 @@
 import { Switch, Route } from "wouter";
+import { QueryClientProvider } from "@tanstack/react-query";
+import { TooltipProvider } from "@/components/ui/tooltip";
+import { Toaster } from "@/components/ui/toaster";
 
+import { queryClient } from "@/lib/queryClient";
+
+// Pages (đảm bảo đúng tên file, đúng chữ HOA/thường)
 import Home from "@/pages/Home";
 import Auth from "@/pages/Auth";
 import FilesPage from "@/pages/Files";
+import UploadPage from "@/pages/Upload";
+import ChatPage from "@/pages/Chat";
+
 import Shop from "@/pages/Shop";
 import ShopParent from "@/pages/ShopParent";
 import ShopItem from "@/pages/ShopItem";
-import ChatPage from "@/pages/Chat";
+
 import OrdersPage from "@/pages/Orders";
 import OrderDetailPage from "@/pages/OrderDetail";
-import UploadPage from "@/pages/Upload";
-import NotFound from "@/pages/not-found";
 
-import { queryClient } from "./lib/queryClient";
-import { QueryClientProvider } from "@tanstack/react-query";
-import { Toaster } from "@/components/ui/toaster";
-import { TooltipProvider } from "@/components/ui/tooltip";
+import NotFound from "@/pages/not-found"; // phải đúng y file: not-found.tsx
 
 function Router() {
   return (
     <Switch>
-      {/* HOME - PHẢI ĐỨNG ĐẦU */}
+      {/* HOME */}
       <Route path="/" component={Home} />
 
       {/* SHOP */}
@@ -33,6 +37,8 @@ function Router() {
       <Route path="/files" component={FilesPage} />
       <Route path="/upload" component={UploadPage} />
       <Route path="/chat" component={ChatPage} />
+
+      {/* ORDERS */}
       <Route path="/orders" component={OrdersPage} />
       <Route path="/orders/:id" component={OrderDetailPage} />
 
