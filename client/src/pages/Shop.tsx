@@ -162,6 +162,11 @@ export default function Shop() {
   const goTopupCard = () => requireLogin(() => (closeMenu(), navigate("/topup/card")));
   const goTopupBank = () => requireLogin(() => (closeMenu(), navigate("/topup/bank")));
   const goHistory = () => requireLogin(() => (closeMenu(), navigate("/lich-su-mua-hang")));
+  const goTopupHistory = () => {
+  setMenuOpen(false);
+  setTopupOpen(false);
+  navigate("/lich-su-nap-tien");
+};
 
   // ====== UI ======
   return (
@@ -438,6 +443,21 @@ export default function Shop() {
                   </span>
                   <ArrowRight className="w-5 h-5 text-slate-400" />
                 </button>
+
+                <button
+  onClick={() => {
+    if (!profile) return openSwal("warning", "Chưa đăng nhập", "Vui lòng đăng nhập trước.");
+    goTopupHistory();
+  }}
+  className="w-full text-left p-4 rounded-2xl bg-white border-2 border-sky-200 font-extrabold active:scale-[0.99] transition flex items-center justify-between"
+  type="button"
+>
+  <span className="inline-flex items-center gap-2">
+    <Wallet className="w-5 h-5 text-sky-700" />
+    Lịch sử nạp tiền
+  </span>
+  <ArrowRight className="w-5 h-5 text-slate-400" />
+</button>
 
                 {/* Logout */}
                 {profile && (
