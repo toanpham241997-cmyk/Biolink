@@ -10,9 +10,8 @@ import {
 } from "lucide-react";
 import ModalSwal, { SwalKind } from "../components/ModalSwal";
 import { parents, childs, formatVND } from "./shop.data";
-import { getSessionUser } from "../lib/authClient"; // bạn chỉnh đúng path theo project
-import { purchaseItem } from "../lib/purchaseClient"; // gọi /api/purchase
-
+import { purchaseItem } from "../../lib/purchaseClient";
+import { getSessionUser } from "../../lib/authClient";
 function cn(...cls: (string | false | undefined | null)[]) {
   return cls.filter(Boolean).join(" ");
 }
