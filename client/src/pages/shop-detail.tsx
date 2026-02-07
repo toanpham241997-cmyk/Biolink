@@ -1,175 +1,139 @@
-import { useMemo } from "react";
-import { Link, useLocation, useRoute } from "wouter";
+import { useMemo, useState } from "react";
+import { useLocation, useRoute, Link } from "wouter";
 import { motion } from "framer-motion";
-import { ArrowLeft, ExternalLink, Download } from "lucide-react";
+import {
+  ArrowLeft,
+  Star,
+  ShieldCheck,
+  ShoppingCart,
+  BadgeCheck,
+  ChevronRight,
+} from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 
-type ShopItem = {
+type ParentOrder = {
   id: string;
   title: string;
-  desc: string;
-  detail: string;
-  image: string;
-  price: string;
-  badge: string;
-  category: string;
-  downloadUrl: string; // link nhận ngay riêng
+  subtitle: string;
+  tag: string;
+  thumb: string;
 };
+
+type ChildOrder = {
+  id: string;
+  parentId: string;
+  title: string;
+  sub: string;
+  price: string;
+  stock: number;
+  rating: number;
+  badge: string; // "VIP", "REG", "FLASH",...
+  thumb: string;
+};
+
+function cn(...cls: (string | false | undefined | null)[]) {
+  return cls.filter(Boolean).join(" ");
+}
 
 export default function ShopDetailPage() {
   const [, navigate] = useLocation();
   const [, params] = useRoute("/shop/:id");
-  const id = params?.id || "";
+  const parentId = params?.id || "";
 
-  const items: ShopItem[] = useMemo(
+  const parents: ParentOrder[] = useMemo(
     () => [
       {
-        id: "order-001",
-        title: "Gói UI Bio Premium",
-        desc: "Full UI + animation, tối ưu mobile.",
-        detail:
-          "✅ Gồm: UI bio + hiệu ứng + responsive.\n✅ Hỗ trợ: React/Vite.\n✅ File đầy đủ để chỉnh sửa.",
-        image:
-          "https://images.unsplash.com/photo-1555066931-4365d14bab8c?q=80&w=1200&auto=format&fit=crop",
-        price: "0₫",
-        badge: "FREE DOWNLOAD",
-        category: "UI",
-        downloadUrl: "https://example.com/download/ui-bio-premium.zip",
+        id: "p1",
+        title: "Kho Nick Liên Quân",
+        subtitle: "Nhiều loại nick • giao dịch nhanh",
+        tag: "HOT",
+        thumb:
+          "https://images.unsplash.com/photo-1542751371-adc38448a05e?q=80&w=1400&auto=format&fit=crop",
       },
       {
-        id: "order-002",
-        title: "Icon Pack Neon",
-        desc: "Icon đẹp cho menu, header, button.",
-        detail:
-          "✅ 300+ icon.\n✅ PNG/SVG.\n✅ Dùng cho web/app.",
-        image:
-          "https://images.unsplash.com/photo-1518779578993-ec3579fee39f?q=80&w=1200&auto=format&fit=crop",
-        price: "0₫",
-        badge: "FREE DOWNLOAD",
-        category: "ICON",
-        downloadUrl: "https://example.com/download/icon-pack-neon.zip",
+        id: "p2",
+        title: "Acc Free Fire",
+        subtitle: "Nick VIP • giá rẻ • uy tín",
+        tag: "SALE",
+        thumb:
+          "https://images.unsplash.com/photo-1552820728-8b83bb6b773f?q=80&w=1400&auto=format&fit=crop",
       },
       {
-        id: "order-003",
-        title: "Landing Sections Pack",
-        desc: "Section sẵn, chuẩn responsive.",
-        detail:
-          "✅ Hero, Feature, Pricing, FAQ.\n✅ Tailwind ready.\n✅ Copy dùng ngay.",
-        image:
-          "https://images.unsplash.com/photo-1521737604893-d14cc237f11d?q=80&w=1200&auto=format&fit=crop",
-        price: "0₫",
-        badge: "FREE DOWNLOAD",
-        category: "WEB",
-        downloadUrl: "https://example.com/download/landing-sections.zip",
+        id: "p3",
+        title: "Acc Roblox / Grow a Garden",
+        subtitle: "Acc ngon • nhiều lựa chọn",
+        tag: "NEW",
+        thumb:
+          "https://images.unsplash.com/photo-1535223289827-42f1e9919769?q=80&w=1400&auto=format&fit=crop",
       },
       {
-        id: "order-004",
-        title: "Motion FX Kit",
-        desc: "Hiệu ứng mượt, gắn vào UI.",
-        detail:
-          "✅ Presets Framer Motion.\n✅ Hover/click.\n✅ Mobile smooth.",
-        image:
-          "https://images.unsplash.com/photo-1526948128573-703ee1aeb6fa?q=80&w=1200&auto=format&fit=crop",
-        price: "0₫",
-        badge: "FREE DOWNLOAD",
-        category: "FX",
-        downloadUrl: "https://example.com/download/motion-fx-kit.zip",
+        id: "p4",
+        title: "Acc Liên Minh / TFT",
+        subtitle: "Rank cao • skin xịn",
+        tag: "HOT",
+        thumb:
+          "https://images.unsplash.com/photo-1511882150382-421056c89033?q=80&w=1400&auto=format&fit=crop",
       },
       {
-        id: "order-005",
-        title: "Template Bio Game",
-        desc: "Phong cách game-like + đẹp mắt.",
-        detail:
-          "✅ Theme game.\n✅ Button + card đẹp.\n✅ Tối ưu điện thoại.",
-        image:
-          "https://images.unsplash.com/photo-1511512578047-dfb367046420?q=80&w=1200&auto=format&fit=crop",
-        price: "0₫",
-        badge: "FREE DOWNLOAD",
-        category: "BIO",
-        downloadUrl: "https://example.com/download/template-bio-game.zip",
-      },
-      {
-        id: "order-006",
-        title: "Header Pack Pro",
-        desc: "10 kiểu header xịn cho web.",
-        detail:
-          "✅ Desktop + Mobile.\n✅ Có menu trượt.\n✅ Dễ thay logo.",
-        image:
-          "https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?q=80&w=1200&auto=format&fit=crop",
-        price: "0₫",
-        badge: "FREE DOWNLOAD",
-        category: "HEADER",
-        downloadUrl: "https://example.com/download/header-pack-pro.zip",
-      },
-      {
-        id: "order-007",
-        title: "Footer Pack",
-        desc: "Footer liên hệ + social đẹp.",
-        detail:
-          "✅ 8 mẫu footer.\n✅ Responsive.\n✅ Dùng cho shop/bio.",
-        image:
-          "https://images.unsplash.com/photo-1556761175-4b46a572b786?q=80&w=1200&auto=format&fit=crop",
-        price: "0₫",
-        badge: "FREE DOWNLOAD",
-        category: "FOOTER",
-        downloadUrl: "https://example.com/download/footer-pack.zip",
-      },
-      {
-        id: "order-008",
-        title: "Card Product Kit",
-        desc: "Card sản phẩm kiểu shop đẹp.",
-        detail:
-          "✅ Card giá, giảm giá, badge.\n✅ Gọn đẹp.\n✅ Dễ chỉnh.",
-        image:
-          "https://images.unsplash.com/photo-1523275335684-37898b6baf30?q=80&w=1200&auto=format&fit=crop",
-        price: "0₫",
-        badge: "FREE DOWNLOAD",
-        category: "CARD",
-        downloadUrl: "https://example.com/download/card-product-kit.zip",
-      },
-      {
-        id: "order-009",
-        title: "Profile Components",
-        desc: "Component hồ sơ + stats.",
-        detail:
-          "✅ Avatar + stats + badge.\n✅ Dùng cho bio.\n✅ UI sạch.",
-        image:
-          "https://images.unsplash.com/photo-1522071820081-009f0129c71c?q=80&w=1200&auto=format&fit=crop",
-        price: "0₫",
-        badge: "FREE DOWNLOAD",
-        category: "PROFILE",
-        downloadUrl: "https://example.com/download/profile-components.zip",
-      },
-      {
-        id: "order-010",
-        title: "Mega UI Bundle",
-        desc: "Combo UI dùng nhanh cho dự án.",
-        detail:
-          "✅ Tổng hợp pack UI.\n✅ Update.\n✅ Dùng được nhiều dự án.",
-        image:
-          "https://images.unsplash.com/photo-1553877522-43269d4ea984?q=80&w=1200&auto=format&fit=crop",
-        price: "0₫",
-        badge: "FREE DOWNLOAD",
-        category: "BUNDLE",
-        downloadUrl: "https://example.com/download/mega-ui-bundle.zip",
+        id: "p5",
+        title: "Dịch vụ Shop",
+        subtitle: "Cày thuê • nạp hộ • hỗ trợ nhanh",
+        tag: "PRO",
+        thumb:
+          "https://images.unsplash.com/photo-1521737604893-d14cc237f11d?q=80&w=1400&auto=format&fit=crop",
       },
     ],
     []
   );
 
-  const item = items.find((x) => x.id === id);
+  // 5 đơn con mỗi parent (demo)
+  const childs: ChildOrder[] = useMemo(() => {
+    const mk = (pid: string, idx: number): ChildOrder => {
+      const badges = ["VIP", "REG", "FLASH", "INFO", "BEST"];
+      const prices = ["29.000đ", "39.000đ", "49.000đ", "79.000đ", "99.000đ"];
+      const thumbs = [
+        "https://images.unsplash.com/photo-1511512578047-dfb367046420?q=80&w=1200&auto=format&fit=crop",
+        "https://images.unsplash.com/photo-1523275335684-37898b6baf30?q=80&w=1200&auto=format&fit=crop",
+        "https://images.unsplash.com/photo-1553877522-43269d4ea984?q=80&w=1200&auto=format&fit=crop",
+        "https://images.unsplash.com/photo-1521737604893-d14cc237f11d?q=80&w=1200&auto=format&fit=crop",
+        "https://images.unsplash.com/photo-1542751371-adc38448a05e?q=80&w=1200&auto=format&fit=crop",
+      ];
+      return {
+        id: `${pid}-c${idx}`,
+        parentId: pid,
+        title: `Đơn hàng ${idx} • ${badges[idx - 1]}`,
+        sub: "Mô tả ngắn: random skin/đồ/level tuỳ gói",
+        price: prices[idx - 1],
+        stock: 100 + idx * 7,
+        rating: 4.0 + (idx % 2) * 0.5,
+        badge: badges[idx - 1],
+        thumb: thumbs[idx - 1],
+      };
+    };
 
-  if (!item) {
+    const all: ChildOrder[] = [];
+    for (const p of ["p1", "p2", "p3", "p4", "p5"]) {
+      for (let i = 1; i <= 5; i++) all.push(mk(p, i));
+    }
+    return all;
+  }, []);
+
+  const parent = parents.find((p) => p.id === parentId);
+  const list = childs.filter((c) => c.parentId === parentId);
+
+  const [tab, setTab] = useState<"detail" | "child">("child");
+
+  if (!parent) {
     return (
-      <div className="min-h-screen px-4 pt-24 pb-16 max-w-2xl mx-auto">
+      <div className="min-h-screen px-4 pt-24 pb-16 max-w-3xl mx-auto">
         <Card className="game-border bg-white/70 dark:bg-card/60">
-          <CardContent className="pt-6 space-y-3">
+          <CardContent className="pt-6 space-y-4">
             <p className="font-extrabold text-lg">Không tìm thấy đơn hàng</p>
             <button
               onClick={() => navigate("/shop")}
-              className="w-full p-3 rounded-2xl bg-primary text-white font-extrabold"
+              className="w-full py-3 rounded-2xl bg-primary text-white font-extrabold"
             >
-              Quay lại Shop
+              Quay lại shop
             </button>
           </CardContent>
         </Card>
@@ -178,78 +142,179 @@ export default function ShopDetailPage() {
   }
 
   return (
-    <div className="min-h-screen px-4 pt-20 pb-16 max-w-3xl mx-auto">
-      {/* Header */}
-      <div className="fixed top-0 left-0 right-0 z-40">
-        <div className="max-w-3xl mx-auto px-4 pt-4">
-          <div className="rounded-2xl bg-white/70 dark:bg-card/60 backdrop-blur-sm game-border px-3 py-3 flex items-center justify-between">
-            <Link
-              href="/shop"
-              className="inline-flex items-center gap-2 px-3 py-2 rounded-xl bg-white/70 dark:bg-card/60 game-border hover:scale-[1.02] active:scale-[0.99] transition"
+    <div className="min-h-screen bg-background">
+      {/* Sticky header */}
+      <div className="sticky top-0 z-40 bg-white/70 dark:bg-card/60 backdrop-blur-md">
+        <div className="max-w-3xl mx-auto px-4 py-3">
+          <div className="flex items-center justify-between">
+            <button
+              onClick={() => navigate("/shop")}
+              className="px-3 py-2 rounded-2xl bg-white/70 dark:bg-card/60 game-border font-bold flex items-center gap-2"
             >
               <ArrowLeft className="w-4 h-4" />
-              <span className="font-bold">Về Shop</span>
-            </Link>
+              Về shop
+            </button>
 
             <div className="text-right leading-tight">
-              <p className="font-extrabold text-sm uppercase">{item.category}</p>
-              <p className="text-xs text-muted-foreground">{item.price}</p>
+              <p className="font-extrabold text-sm uppercase">{parent.tag}</p>
+              <p className="text-xs text-muted-foreground">Tab chi tiết & mua nhanh</p>
             </div>
+          </div>
+
+          {/* Tabs */}
+          <div className="mt-3 grid grid-cols-2 gap-2">
+            <button
+              onClick={() => setTab("child")}
+              className={cn(
+                "py-3 rounded-2xl game-border font-extrabold text-sm transition",
+                tab === "child"
+                  ? "bg-primary text-white shadow"
+                  : "bg-white/70 dark:bg-card/60 hover:bg-primary/10"
+              )}
+            >
+              5 đơn hàng con
+            </button>
+            <button
+              onClick={() => setTab("detail")}
+              className={cn(
+                "py-3 rounded-2xl game-border font-extrabold text-sm transition",
+                tab === "detail"
+                  ? "bg-primary text-white shadow"
+                  : "bg-white/70 dark:bg-card/60 hover:bg-primary/10"
+              )}
+            >
+              Mô tả / bảo hành
+            </button>
           </div>
         </div>
       </div>
 
-      <motion.div initial={{ opacity: 0, y: 14 }} animate={{ opacity: 1, y: 0 }}>
-        <Card className="game-border bg-white/70 dark:bg-card/60 overflow-hidden">
-          {/* Image + badge */}
-          <div className="relative">
-            <img src={item.image} className="w-full h-[220px] object-cover" alt={item.title} />
-            <div className="absolute top-4 left-4">
-              <div className="px-3 py-1 rounded-full text-[11px] font-extrabold text-black bg-yellow-300 shadow">
-                {item.badge}
+      <div className="max-w-3xl mx-auto px-4 pt-4 pb-16">
+        {/* Parent hero */}
+        <div className="rounded-3xl overflow-hidden game-border bg-white/60 dark:bg-card/60">
+          <div className="relative h-[210px]">
+            <img src={parent.thumb} alt={parent.title} className="w-full h-full object-cover" />
+            <div className="absolute inset-0 bg-gradient-to-t from-black/65 via-black/15 to-transparent" />
+
+            <div className="absolute left-4 right-4 bottom-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-white font-extrabold text-lg drop-shadow">
+                    {parent.title}
+                  </p>
+                  <p className="text-white/90 text-sm drop-shadow">{parent.subtitle}</p>
+                </div>
+                <div className="px-3 py-1 rounded-full bg-white/80 text-[11px] font-extrabold game-border">
+                  {parent.tag}
+                </div>
               </div>
             </div>
           </div>
+        </div>
 
-          <CardContent className="pt-6 space-y-4">
-            <div>
-              <p className="font-extrabold text-xl">{item.title}</p>
-              <p className="text-sm text-muted-foreground mt-1">{item.desc}</p>
-            </div>
+        {/* Tab content */}
+        {tab === "detail" ? (
+          <div className="mt-4 space-y-3">
+            <Card className="game-border bg-white/70 dark:bg-card/60">
+              <CardContent className="pt-5 space-y-3">
+                <p className="font-extrabold">Mô tả</p>
+                <p className="text-sm text-muted-foreground">
+                  Đây là trang chi tiết của đơn hàng cha. Bạn có thể đặt nội dung thật:
+                  mô tả gói, điều kiện, cách nhận tài khoản, v.v...
+                </p>
 
-            <div className="p-4 rounded-2xl bg-white/70 dark:bg-card/60 game-border whitespace-pre-line text-sm">
-              {item.detail}
-            </div>
-
-            {/* Actions */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              <a
-                href={item.downloadUrl}
-                target="_blank"
-                rel="noreferrer"
-                className="w-full p-3 rounded-2xl bg-primary text-white font-extrabold flex items-center justify-center gap-2 hover:opacity-95 transition"
+                <div className="p-4 rounded-2xl bg-primary/10 game-border">
+                  <div className="flex items-start gap-3">
+                    <ShieldCheck className="w-5 h-5 text-primary mt-0.5" />
+                    <div>
+                      <p className="font-extrabold">Bảo hành</p>
+                      <p className="text-sm text-muted-foreground">
+                        Hỗ trợ đổi nếu lỗi đăng nhập theo quy định (demo).
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        ) : (
+          <div className="mt-4 space-y-3">
+            {/* 5 child cards */}
+            {list.map((c, idx) => (
+              <motion.div
+                key={c.id}
+                initial={{ opacity: 0, y: 12 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: idx * 0.05 }}
+                className="rounded-3xl overflow-hidden bg-white/70 dark:bg-card/60 game-border shadow-sm"
               >
-                <Download className="w-5 h-5" />
-                Nhận ngay
-              </a>
+                <div className="flex gap-3 p-3">
+                  {/* thumb */}
+                  <div className="relative w-[110px] h-[92px] rounded-2xl overflow-hidden game-border shrink-0">
+                    <img src={c.thumb} alt={c.title} className="w-full h-full object-cover" />
+                    <div className="absolute top-2 left-2">
+                      <div
+                        className={cn(
+                          "px-2 py-1 rounded-full text-[10px] font-extrabold shadow",
+                          c.badge === "VIP" && "bg-yellow-300 text-black",
+                          c.badge === "REG" && "bg-white/85 text-black game-border",
+                          c.badge === "FLASH" && "bg-red-500 text-white",
+                          c.badge === "INFO" && "bg-sky-500 text-white",
+                          c.badge === "BEST" && "bg-emerald-500 text-white"
+                        )}
+                      >
+                        {c.badge}
+                      </div>
+                    </div>
+                  </div>
 
-              <a
-                href={item.downloadUrl}
-                target="_blank"
-                rel="noreferrer"
-                className="w-full p-3 rounded-2xl bg-primary/10 hover:bg-primary/20 font-extrabold flex items-center justify-center gap-2 transition"
-              >
-                <ExternalLink className="w-5 h-5" />
-                Mở link tải
-              </a>
+                  {/* content */}
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="min-w-0">
+                        <p className="font-extrabold text-sm line-clamp-1">{c.title}</p>
+                        <p className="text-xs text-muted-foreground line-clamp-1">{c.sub}</p>
+                      </div>
+
+                      <div className="text-right">
+                        <p className="font-extrabold text-primary">{c.price}</p>
+                        <p className="text-[11px] text-muted-foreground">Còn {c.stock}</p>
+                      </div>
+                    </div>
+
+                    {/* rating + actions */}
+                    <div className="mt-3 flex items-center justify-between gap-2">
+                      <div className="flex items-center gap-1 text-[11px] text-muted-foreground">
+                        <Star className="w-4 h-4 text-yellow-500" />
+                        <span className="font-bold text-foreground">{c.rating.toFixed(1)}</span>
+                        <span>•</span>
+                        <BadgeCheck className="w-4 h-4 text-primary" />
+                        <span>Uy tín</span>
+                      </div>
+
+                      <button
+                        onClick={() => alert(`Mua ngay: ${c.title} (demo)`)}
+                        className="px-4 py-2 rounded-2xl bg-primary text-white font-extrabold text-sm shadow hover:opacity-95 active:scale-[0.99] transition inline-flex items-center gap-2"
+                      >
+                        <ShoppingCart className="w-4 h-4" />
+                        Mua ngay
+                        <ChevronRight className="w-4 h-4" />
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </motion.div>
+            ))}
+
+            <div className="rounded-3xl bg-primary/10 game-border p-4">
+              <p className="font-extrabold">Gợi ý</p>
+              <p className="text-sm text-muted-foreground mt-1">
+                Bạn có thể đổi dữ liệu 5 đơn con theo đúng sản phẩm thật (giá, ảnh, tồn kho).
+              </p>
             </div>
-
-            <p className="text-xs text-muted-foreground">
-              Tip: Bạn có thể thay <b>downloadUrl</b> của từng đơn hàng để gắn link thật.
-            </p>
-          </CardContent>
-        </Card>
-      </motion.div>
+          </div>
+        )}
+      </div>
     </div>
   );
-}
+        }
