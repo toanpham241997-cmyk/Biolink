@@ -147,7 +147,7 @@ export default function Shop() {
   const goOrders = () => {
     setMenuOpen(false);
     setTopupOpen(false);
-    navigate("/orders"); // ✅ lịch sử mua hàng
+    navigate("/lich-su-mua-hang"); // ✅ lịch sử mua hàng
   };
 
   const goTopupCard = () => {
