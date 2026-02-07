@@ -185,10 +185,46 @@ const openLink = (url: string) => {
       Upload File / Link
     </p>
     <p className="text-xs text-muted-foreground">
-      Lấy link chỉ trong 3s ⚡
+      LẤY LINK CHỈ TRONG 3s ⚡
     </p>
   </div>
 </button>
+
+
+
+
+
+<button
+  onClick={() => navigate("/shop")}
+  className="
+    w-full flex items-center gap-4 p-4
+    rounded-2xl
+    bg-white/70 dark:bg-card/60
+    game-border
+    hover:scale-[1.03]
+    hover:shadow-lg
+    active:scale-[0.98]
+    transition-all duration-200
+  "
+>
+  {/* Icon */}
+  <div className="w-11 h-11 rounded-xl bg-primary/15 flex items-center justify-center">
+    <FileUp className="w-6 h-6 text-primary" />
+  </div>
+
+  {/* Text */}
+  <div className="text-left leading-tight">
+    <p className="font-bold text-sm uppercase">
+      SHOP DEV HVH
+    </p>
+    <p className="text-xs text-muted-foreground">
+      SHOP BÁN ĐỦ LOẠI DỮ LIỆU 
+    </p>
+  </div>
+</button>
+
+
+    
 
           {/* Optional: nút đóng */}
           <button
