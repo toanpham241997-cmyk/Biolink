@@ -16,6 +16,7 @@ import AccountPage from "@/pages/Account";
 import TopupCardPage from "@/pages/TopupCard";
 import TopupBankPage from "@/pages/TopupBank";
 import LichSuMuaHangPage from "@/pages/LichSuMuaHang";
+import LichSuNapTien from "@/pages/LichSuNapTien";
 
 
 import { queryClient } from "./lib/queryClient";
@@ -47,6 +48,7 @@ function Router() {
       <Route path="/topup/card" component={TopupCardPage} />
       <Route path="/topup/bank" component={TopupBankPage} />
       <Route path="/lich-su-mua-hang" component={LichSuMuaHangPage} />
+      <Route path="/lich-su-nap-tien" component={LichSuNapTien} />
 
       {/* 404 */}
       <Route component={NotFound} />
