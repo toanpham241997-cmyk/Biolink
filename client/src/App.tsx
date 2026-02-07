@@ -26,7 +26,7 @@ function Router() {
         <Route path="/orders" component={OrdersPage} />
         <Route path="/orders/:id" component={OrderDetailPage} />
       <Route path="/files" component={FilesPage} />
-      <Route path="/shop" component={Shop} />
+      
       <Route path="/shop/p/:parentId" component={ShopParent} />
       <Route path="/shop/i/:itemId" component={ShopItem} />
       <Route path="/auth" component={Auth} />
