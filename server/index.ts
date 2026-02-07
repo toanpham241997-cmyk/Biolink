@@ -2,11 +2,14 @@ import express, { type Request, Response, NextFunction } from "express";
 import { createServer } from "http";
 import path from "path";
 import fs from "fs";
-
+import { topupCardCreate, topupCardCallback, topupHistory } from "./routes/topup";
 import { registerRoutes } from "./routes";
 import { storage } from "./storage";
 
 const app = express();
+app.post("/api/topup/card/create", topupCardCreate);
+app.get("/api/topup/card/callback", topupCardCallback);
+app.get("/api/topup/history", topupHistory);
 const httpServer = createServer(app);
 
 declare module "http" {
