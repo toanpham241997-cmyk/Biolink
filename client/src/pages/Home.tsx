@@ -165,22 +165,7 @@ export default function Home() {
                     </div>
                   </Link>
 
-                  {/* Files */}
-                  <button
-                    onClick={() => go("/files")}
-                    className="w-full flex items-center gap-3 p-4 rounded-2xl bg-white/70 dark:bg-card/60 game-border hover:scale-[1.02] active:scale-[0.99] transition"
-                    type="button"
-                  >
-                    <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center">
-                      <Code2 className="w-5 h-5 text-primary" />
-                    </div>
-                    <div className="text-left">
-                      <p className="font-bold">Coder free</p>
-                      <p className="text-xs text-muted-foreground">
-                        Tool / hosting miễn phí
-                      </p>
-                    </div>
-                  </button>
+                  
 
                   {/* Chat */}
                   <button
@@ -233,22 +218,7 @@ export default function Home() {
                     </div>
                   </button>
 
-                  {/* External link demo (nếu cần) */}
-                  <button
-                    onClick={() => openLink("https://render.com/")}
-                    className="w-full flex items-center gap-3 p-4 rounded-2xl bg-white/70 dark:bg-card/60 game-border hover:scale-[1.02] active:scale-[0.99] transition"
-                    type="button"
-                  >
-                    <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center">
-                      <Code2 className="w-5 h-5 text-primary" />
-                    </div>
-                    <div className="text-left">
-                      <p className="font-bold">Render</p>
-                      <p className="text-xs text-muted-foreground">
-                        Hosting miễn phí
-                      </p>
-                    </div>
-                  </button>
+                  
 
                   <button
                     onClick={() => setIsMenuOpen(false)}
