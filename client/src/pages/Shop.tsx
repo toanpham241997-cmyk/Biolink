@@ -1,5 +1,5 @@
-import { useEffect, useMemo, useState } from "react";
-import { useLocation } from "wouter";
+import { useEffect, useMemo, useState, useCallback } from "react";
+import { useLocation, Link } from "wouter";
 import { AnimatePresence, motion } from "framer-motion";
 import {
   ArrowRight,
@@ -39,10 +39,11 @@ type Profile = {
 };
 
 function formatVND(n: number) {
+  const val = Number(n || 0);
   try {
-    return n.toLocaleString("vi-VN") + "₫";
+    return val.toLocaleString("vi-VN") + "₫";
   } catch {
-    return `${n}₫`;
+    return `${val}₫`;
   }
 }
 
@@ -67,8 +68,18 @@ export default function Shop() {
     message?: string;
   }>({ open: false, variant: "info", title: "" });
 
-  const openSwal = (variant: SwalKind, title: string, message?: string) =>
-    setSwal({ open: true, variant, title, message });
+  const openSwal = useCallback(
+    (variant: SwalKind, title: string, message?: string) =>
+      setSwal({ open: true, variant, title, message }),
+    []
+  );
+
+  const closeSwal = () => setSwal((s) => ({ ...s, open: false }));
+
+  const closeMenu = () => {
+    setMenuOpen(false);
+    setTopupOpen(false);
+  };
 
   // ====== AUTH: session + profile ======
   useEffect(() => {
@@ -76,7 +87,6 @@ export default function Shop() {
 
     const load = async () => {
       setSessionLoading(true);
-
       const { data } = await supabase.auth.getSession();
       if (!alive) return;
 
@@ -112,6 +122,7 @@ export default function Shop() {
           .select("id,email,name,avatar,role,status,balance")
           .eq("id", uid)
           .single();
+
         setProfile((p as Profile) ?? null);
       } else {
         setProfile(null);
@@ -131,36 +142,26 @@ export default function Shop() {
     return parents.filter((p) => (p.title + " " + p.subtitle).toLowerCase().includes(k));
   }, [q]);
 
+  const requireLogin = (action: () => void) => {
+    if (!profile) {
+      openSwal("warning", "Chưa đăng nhập", "Vui lòng đăng nhập để sử dụng tính năng này.");
+      return;
+    }
+    action();
+  };
+
   const logout = async () => {
     await supabase.auth.signOut();
-    setMenuOpen(false);
-    setTopupOpen(false);
+    closeMenu();
     openSwal("success", "Đã đăng xuất");
   };
 
-  const goAccount = () => {
-    setMenuOpen(false);
-    setTopupOpen(false);
-    navigate("/account"); // ✅ tab tài khoản riêng
-  };
-
-  const goOrders = () => {
-    setMenuOpen(false);
-    setTopupOpen(false);
-    navigate("/lich-su-mua-hang"); // ✅ lịch sử mua hàng
-  };
-
-  const goTopupCard = () => {
-    setMenuOpen(false);
-    setTopupOpen(false);
-    navigate("/topup/card"); // ✅ tab nạp thẻ
-  };
-
-  const goTopupBank = () => {
-    setMenuOpen(false);
-    setTopupOpen(false);
-    navigate("/topup/bank"); // ✅ tab nạp bank
-  };
+  // ====== NAV HELPERS (NO 404) ======
+  // ✅ Tất cả chuyển trang dùng navigate hoặc <Link>, tuyệt đối không dùng <a href>
+  const goAccount = () => requireLogin(() => (closeMenu(), navigate("/account")));
+  const goTopupCard = () => requireLogin(() => (closeMenu(), navigate("/topup/card")));
+  const goTopupBank = () => requireLogin(() => (closeMenu(), navigate("/topup/bank")));
+  const goHistory = () => requireLogin(() => (closeMenu(), navigate("/lich-su-mua-hang")));
 
   // ====== UI ======
   return (
@@ -199,7 +200,7 @@ export default function Shop() {
                   >
                     <div className="w-8 h-8 rounded-full bg-sky-100 border-2 border-sky-300 flex items-center justify-center overflow-hidden">
                       {profile.avatar ? (
-                        <img src={profile.avatar} className="w-full h-full object-cover" />
+                        <img src={profile.avatar} className="w-full h-full object-cover" alt="avatar" />
                       ) : (
                         <UserCircle2 className="w-5 h-5 text-sky-700" />
                       )}
@@ -270,10 +271,7 @@ export default function Shop() {
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
-              onClick={() => {
-                setMenuOpen(false);
-                setTopupOpen(false);
-              }}
+              onClick={closeMenu}
             />
 
             <motion.aside
@@ -283,6 +281,7 @@ export default function Shop() {
               exit={{ x: -420 }}
               transition={{ type: "spring", stiffness: 260, damping: 26 }}
             >
+              {/* Header */}
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
                   <div className="w-11 h-11 rounded-2xl bg-sky-100 border-2 border-sky-300 flex items-center justify-center">
@@ -294,10 +293,7 @@ export default function Shop() {
                   </div>
                 </div>
                 <button
-                  onClick={() => {
-                    setMenuOpen(false);
-                    setTopupOpen(false);
-                  }}
+                  onClick={closeMenu}
                   className="w-11 h-11 rounded-2xl bg-white border-2 border-sky-300 flex items-center justify-center"
                   type="button"
                 >
@@ -311,7 +307,7 @@ export default function Shop() {
                   <div className="flex items-center gap-3">
                     <div className="w-12 h-12 rounded-full bg-white border-2 border-sky-300 flex items-center justify-center overflow-hidden">
                       {profile.avatar ? (
-                        <img src={profile.avatar} className="w-full h-full object-cover" />
+                        <img src={profile.avatar} className="w-full h-full object-cover" alt="avatar" />
                       ) : (
                         <UserCircle2 className="w-7 h-7 text-sky-700" />
                       )}
@@ -340,7 +336,7 @@ export default function Shop() {
                     <div className="mt-3 grid grid-cols-2 gap-2">
                       <button
                         onClick={() => {
-                          setMenuOpen(false);
+                          closeMenu();
                           navigate("/auth?mode=login");
                         }}
                         className="h-11 rounded-2xl bg-sky-500 text-white border-2 border-sky-600 font-extrabold inline-flex items-center justify-center gap-2"
@@ -350,7 +346,7 @@ export default function Shop() {
                       </button>
                       <button
                         onClick={() => {
-                          setMenuOpen(false);
+                          closeMenu();
                           navigate("/auth?mode=register");
                         }}
                         className="h-11 rounded-2xl bg-white text-sky-700 border-2 border-sky-300 font-extrabold inline-flex items-center justify-center gap-2"
@@ -367,10 +363,7 @@ export default function Shop() {
               <div className="mt-4 space-y-2">
                 {/* Account */}
                 <button
-                  onClick={() => {
-                    if (!profile) return openSwal("warning", "Chưa đăng nhập", "Vui lòng đăng nhập trước.");
-                    goAccount();
-                  }}
+                  onClick={goAccount}
                   className="w-full text-left p-4 rounded-2xl bg-white border-2 border-sky-200 font-extrabold active:scale-[0.99] transition flex items-center justify-between"
                   type="button"
                 >
@@ -406,10 +399,7 @@ export default function Shop() {
                     >
                       <div className="mt-2 space-y-2 pl-2">
                         <button
-                          onClick={() => {
-                            if (!profile) return openSwal("warning", "Chưa đăng nhập", "Vui lòng đăng nhập trước.");
-                            goTopupCard();
-                          }}
+                          onClick={goTopupCard}
                           className="w-full text-left p-4 rounded-2xl bg-sky-50 border-2 border-sky-200 font-extrabold active:scale-[0.99] transition flex items-center justify-between"
                           type="button"
                         >
@@ -421,10 +411,7 @@ export default function Shop() {
                         </button>
 
                         <button
-                          onClick={() => {
-                            if (!profile) return openSwal("warning", "Chưa đăng nhập", "Vui lòng đăng nhập trước.");
-                            goTopupBank();
-                          }}
+                          onClick={goTopupBank}
                           className="w-full text-left p-4 rounded-2xl bg-sky-50 border-2 border-sky-200 font-extrabold active:scale-[0.99] transition flex items-center justify-between"
                           type="button"
                         >
@@ -439,12 +426,9 @@ export default function Shop() {
                   )}
                 </AnimatePresence>
 
-                {/* Orders */}
+                {/* History */}
                 <button
-                  onClick={() => {
-                    if (!profile) return openSwal("warning", "Chưa đăng nhập", "Vui lòng đăng nhập trước.");
-                    goOrders();
-                  }}
+                  onClick={goHistory}
                   className="w-full text-left p-4 rounded-2xl bg-white border-2 border-sky-200 font-extrabold active:scale-[0.99] transition flex items-center justify-between"
                   type="button"
                 >
@@ -489,13 +473,14 @@ export default function Shop() {
                 đơn hàng con có nút <b>Mua ngay</b> + nhập mã giảm giá.
               </p>
 
-              {/* ✅ NẠP TIỀN UI: Nạp thẻ + Nạp Bank */}
+              {/* ✅ NẠP TIỀN UI: chuyển tab bằng navigate() => không reload => không 404 */}
               <div className="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-2">
                 <button
-                  onClick={() => {
-                    if (!profile) return openSwal("warning", "Chưa đăng nhập", "Vui lòng đăng nhập để nạp tiền.");
-                    navigate("/topup/card");
-                  }}
+                  onClick={() =>
+                    requireLogin(() => {
+                      navigate("/topup/card");
+                    })
+                  }
                   className="h-12 rounded-2xl bg-sky-500 text-white border-2 border-sky-600 font-extrabold shadow active:scale-[0.99] transition inline-flex items-center justify-center gap-2"
                   type="button"
                 >
@@ -504,10 +489,11 @@ export default function Shop() {
                 </button>
 
                 <button
-                  onClick={() => {
-                    if (!profile) return openSwal("warning", "Chưa đăng nhập", "Vui lòng đăng nhập để nạp tiền.");
-                    navigate("/topup/bank");
-                  }}
+                  onClick={() =>
+                    requireLogin(() => {
+                      navigate("/topup/bank");
+                    })
+                  }
                   className="h-12 rounded-2xl bg-white text-sky-700 border-2 border-sky-300 font-extrabold shadow-sm active:scale-[0.99] transition inline-flex items-center justify-center gap-2"
                   type="button"
                 >
@@ -541,28 +527,35 @@ export default function Shop() {
 
         <div className="mt-3 grid grid-cols-1 gap-4">
           {filteredParents.map((p) => (
-            <button
-              key={p.id}
-              onClick={() => navigate(`/shop/p/${p.id}`)}
-              className="text-left rounded-[30px] overflow-hidden bg-white border-[3px] border-sky-400 shadow-[0_16px_35px_rgba(2,132,199,0.14)] active:scale-[0.995] transition"
-              type="button"
-            >
-              <div className="relative">
-                <img src={p.cover} className="w-full h-[190px] object-cover" />
-                <div className="absolute inset-0 bg-gradient-to-t from-black/65 via-black/10 to-transparent" />
-                <div className="absolute bottom-4 left-4 right-4">
-                  <p className="text-white font-extrabold text-[18px] drop-shadow">{p.title}</p>
-                  <p className="text-white/90 text-[13px] drop-shadow line-clamp-2">{p.subtitle}</p>
+            // ✅ dùng Link để tránh reload (không 404 do server)
+            <Link key={p.id} href={`/shop/p/${p.id}`}>
+              <a
+                className="block text-left rounded-[30px] overflow-hidden bg-white border-[3px] border-sky-400 shadow-[0_16px_35px_rgba(2,132,199,0.14)] active:scale-[0.995] transition"
+                onClick={(e) => {
+                  // ✅ đảm bảo không reload nếu môi trường bọc anchor lạ
+                  e.preventDefault();
+                  navigate(`/shop/p/${p.id}`);
+                }}
+              >
+                <div className="relative">
+                  <img src={p.cover} className="w-full h-[190px] object-cover" alt={p.title} />
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/65 via-black/10 to-transparent" />
+                  <div className="absolute bottom-4 left-4 right-4">
+                    <p className="text-white font-extrabold text-[18px] drop-shadow">{p.title}</p>
+                    <p className="text-white/90 text-[13px] drop-shadow line-clamp-2">
+                      {p.subtitle}
+                    </p>
+                  </div>
                 </div>
-              </div>
 
-              <div className="p-4 flex items-center justify-between">
-                <p className="text-[13px] text-slate-600 font-bold">Xem đơn con</p>
-                <span className="inline-flex items-center gap-2 text-sky-700 font-extrabold">
-                  Mở <ArrowRight className="w-5 h-5" />
-                </span>
-              </div>
-            </button>
+                <div className="p-4 flex items-center justify-between">
+                  <p className="text-[13px] text-slate-600 font-bold">Xem đơn con</p>
+                  <span className="inline-flex items-center gap-2 text-sky-700 font-extrabold">
+                    Mở <ArrowRight className="w-5 h-5" />
+                  </span>
+                </div>
+              </a>
+            </Link>
           ))}
         </div>
 
@@ -580,7 +573,7 @@ export default function Shop() {
         variant={swal.variant}
         title={swal.title}
         message={swal.message}
-        onClose={() => setSwal((s) => ({ ...s, open: false }))}
+        onClose={closeSwal}
       />
     </div>
   );
