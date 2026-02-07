@@ -166,6 +166,10 @@ export default function Shop() {
   setMenuOpen(false);
   setTopupOpen(false);
   navigate("/lich-su-nap-tien");
+    const goTopupHistory = () => {
+  setMenuOpen(false);
+  setTopupOpen(false);
+  navigate("/topup/momo");
 };
 
   // ====== UI ======
@@ -519,6 +523,18 @@ export default function Shop() {
                 >
                   <Landmark className="w-5 h-5" />
                   Nạp Bank
+                </button>
+                <button
+                  onClick={() =>
+                    requireLogin(() => {
+                      navigate("/topup/momo");
+                    })
+                  }
+                  className="h-12 rounded-2xl bg-white text-sky-700 border-2 border-sky-300 font-extrabold shadow-sm active:scale-[0.99] transition inline-flex items-center justify-center gap-2"
+                  type="button"
+                >
+                  <Landmark className="w-5 h-5" />
+                  Nạp momo
                 </button>
               </div>
 
