@@ -4,8 +4,6 @@ import { ArrowLeft, ShoppingCart, BadgeCheck, TicketPercent } from "lucide-react
 
 import { parents, childs, formatVND } from "./shop.data";
 import ModalSwal, { SwalKind } from "../components/ModalSwal";
-
-// ✅ Dùng đúng file bạn đang có
 import { supabase } from "../lib/supabaseClient";
 
 function cn(...cls: (string | false | undefined | null)[]) {
@@ -16,7 +14,7 @@ type PurchaseModalState =
   | { open: false }
   | {
       open: true;
-      itemId: string;
+      itemId: string; // luôn string
       qty: number;
       coupon: string;
       loading: boolean;
@@ -24,11 +22,24 @@ type PurchaseModalState =
 
 export default function ShopParent() {
   const [, navigate] = useLocation();
-  const [, params] = useRoute("/shop/p/:parentId");
-  const parentId = params?.parentId || "";
 
-  const parent = useMemo(() => parents.find((p) => p.id === parentId), [parentId]);
-  const list = useMemo(() => childs.filter((c) => c.parentId === parentId), [parentId]);
+  // ✅ lấy match để tránh params undefined do route không khớp
+  const [match, params] = useRoute("/shop/p/:parentId");
+  const parentId = params?.parentId ? String(params.parentId) : "";
+
+  // Nếu route không match thì không render (tránh UI nhảy bậy)
+  if (!match) return null;
+
+  // ✅ Fix lệch kiểu: so sánh string
+  const parent = useMemo(
+    () => parents.find((p) => String((p as any).id) === String(parentId)),
+    [parentId]
+  );
+
+  const list = useMemo(
+    () => childs.filter((c) => String((c as any).parentId) === String(parentId)),
+    [parentId]
+  );
 
   // swal notify
   const [swal, setSwal] = useState<{
@@ -58,7 +69,7 @@ export default function ShopParent() {
       return;
     }
 
-    setBuy({ open: true, itemId, qty: 1, coupon: "", loading: false });
+    setBuy({ open: true, itemId: String(itemId), qty: 1, coupon: "", loading: false });
   };
 
   const closeBuyModal = () => setBuy({ open: false });
@@ -68,7 +79,8 @@ export default function ShopParent() {
   const submitPurchase = async () => {
     if (!buy.open) return;
 
-    const item = childs.find((x) => x.id === buy.itemId);
+    // ✅ Fix lệch kiểu itemId
+    const item = childs.find((x) => String((x as any).id) === String(buy.itemId));
     if (!item) {
       closeBuyModal();
       return openSwal("error", "Lỗi", "Không tìm thấy sản phẩm.");
@@ -90,7 +102,7 @@ export default function ShopParent() {
         return;
       }
 
-      // ✅ Gọi API server thật
+      // ✅ Fix body: dùng quantity (đồng bộ với Shop.tsx + server)
       const res = await fetch("/api/purchase", {
         method: "POST",
         headers: {
@@ -98,8 +110,8 @@ export default function ShopParent() {
           Authorization: `Bearer ${session.access_token}`,
         },
         body: JSON.stringify({
-          itemId: item.id,
-          qty: buy.qty,
+          itemId: String((item as any).id),
+          quantity: buy.qty,
           coupon: buy.coupon.trim() || null,
         }),
       });
@@ -109,16 +121,11 @@ export default function ShopParent() {
       setBuy((s) => (s.open ? { ...s, loading: false } : s));
 
       if (!res.ok) {
-        // server trả message
         return openSwal("error", "Không mua được", json?.message || "Có lỗi xảy ra.");
       }
 
       closeBuyModal();
-      openSwal(
-        "success",
-        "Mua thành công",
-        `Bạn đã mua "${item.title}" x${buy.qty}.`
-      );
+      openSwal("success", "Mua thành công", `Bạn đã mua "${(item as any).title}" x${buy.qty}.`);
     } catch (e: any) {
       setBuy((s) => (s.open ? { ...s, loading: false } : s));
       openSwal("error", "Lỗi mạng", e?.message || "Không thể kết nối server.");
@@ -132,7 +139,10 @@ export default function ShopParent() {
         <div className="max-w-3xl mx-auto rounded-[30px] bg-white border-[3px] border-sky-400 p-6 shadow">
           <p className="font-extrabold text-[18px]">Không tìm thấy đơn hàng</p>
           <p className="text-sm text-slate-600 mt-2">
-            Mã đơn hàng cha không đúng hoặc dữ liệu shop.data.ts bị thiếu parentId.
+            Lỗi thường do <b>id / parentId lệch kiểu</b> (number vs string) hoặc
+            route không đúng. Hãy kiểm tra <b>shop.data.ts</b>:
+            <br />- parents[].id phải khớp với URL /shop/p/:parentId
+            <br />- childs[].parentId phải đúng bằng parents[].id
           </p>
 
           <button
@@ -168,7 +178,7 @@ export default function ShopParent() {
             </button>
 
             <div className="text-right leading-tight">
-              <p className="font-extrabold text-[14px] line-clamp-1">{parent.title}</p>
+              <p className="font-extrabold text-[14px] line-clamp-1">{(parent as any).title}</p>
               <p className="text-[12px] text-slate-500">Chọn đơn con để xem chi tiết / mua</p>
             </div>
           </div>
@@ -179,13 +189,13 @@ export default function ShopParent() {
       <div className="max-w-3xl mx-auto px-3 pt-4">
         <div className="rounded-[30px] overflow-hidden bg-white border-[3px] border-sky-400 shadow-[0_18px_40px_rgba(2,132,199,0.18)]">
           <div className="relative">
-            <img src={parent.cover} className="w-full h-[210px] object-cover" />
+            <img src={(parent as any).cover} className="w-full h-[210px] object-cover" />
             <div className="absolute inset-0 bg-gradient-to-t from-black/65 via-black/10 to-transparent" />
             <div className="absolute bottom-4 left-4 right-4">
               <p className="text-white font-extrabold text-[20px] drop-shadow">
-                {parent.title}
+                {(parent as any).title}
               </p>
-              <p className="text-white/90 text-[13px] drop-shadow">{parent.subtitle}</p>
+              <p className="text-white/90 text-[13px] drop-shadow">{(parent as any).subtitle}</p>
             </div>
           </div>
         </div>
@@ -199,14 +209,16 @@ export default function ShopParent() {
         </div>
 
         <div className="mt-3 grid grid-cols-1 gap-4">
-          {list.map((c) => (
+          {list.map((c: any) => (
             <div
-              key={c.id}
+              key={String(c.id)}
               className="text-left rounded-[30px] overflow-hidden bg-white border-[3px] border-sky-400 shadow-[0_16px_35px_rgba(2,132,199,0.14)]"
             >
+              {/* ✅ bấm vào ảnh/card => chi tiết */}
               <button
-                onClick={() => navigate(`/shop/i/${c.id}`)}
+                onClick={() => navigate(`/shop/i/${String(c.id)}`)}
                 className="w-full text-left active:scale-[0.997] transition"
+                type="button"
               >
                 <div className="relative">
                   <img src={c.image} className="w-full h-[170px] object-cover" />
@@ -219,12 +231,8 @@ export default function ShopParent() {
                   </div>
 
                   <div className="absolute bottom-3 left-4 right-4">
-                    <p className="text-white font-extrabold text-[17px] drop-shadow">
-                      {c.title}
-                    </p>
-                    <p className="text-white/90 text-[13px] drop-shadow line-clamp-2">
-                      {c.desc}
-                    </p>
+                    <p className="text-white font-extrabold text-[17px] drop-shadow">{c.title}</p>
+                    <p className="text-white/90 text-[13px] drop-shadow line-clamp-2">{c.desc}</p>
                   </div>
                 </div>
               </button>
@@ -232,23 +240,23 @@ export default function ShopParent() {
               <div className="p-4 flex items-center justify-between gap-3">
                 <div>
                   <p className="text-[12px] text-slate-500">Giá</p>
-                  <p className="font-extrabold text-[18px] text-sky-700">
-                    {formatVND(c.price)}
-                  </p>
+                  <p className="font-extrabold text-[18px] text-sky-700">{formatVND(c.price)}</p>
                 </div>
 
                 <div className="flex items-center gap-2">
                   <button
-                    onClick={() => navigate(`/shop/i/${c.id}`)}
+                    onClick={() => navigate(`/shop/i/${String(c.id)}`)}
                     className="px-3 py-2 rounded-2xl bg-sky-100 border-2 border-sky-300 font-extrabold text-[13px] inline-flex items-center gap-2 active:scale-[0.99] transition"
+                    type="button"
                   >
                     <BadgeCheck className="w-4 h-4 text-sky-600" />
                     Chi tiết
                   </button>
 
                   <button
-                    onClick={() => openBuyModal(c.id)}
+                    onClick={() => openBuyModal(String(c.id))}
                     className="px-4 py-2 rounded-2xl bg-sky-500 border-2 border-sky-600 text-white font-extrabold text-[13px] shadow inline-flex items-center gap-2 active:scale-[0.99] transition"
+                    type="button"
                   >
                     <ShoppingCart className="w-4 h-4" />
                     Mua ngay
@@ -263,8 +271,8 @@ export default function ShopParent() {
           <div className="mt-6 rounded-[30px] bg-white border-[3px] border-sky-300 p-5 shadow">
             <p className="font-extrabold text-[16px]">Chưa có đơn hàng con</p>
             <p className="text-sm text-slate-600 mt-1">
-              Kiểm tra lại <b>childs</b> trong shop.data.ts phải có <b>parentId</b> đúng
-              bằng <b>{parentId}</b>.
+              Kiểm tra lại <b>childs</b> trong shop.data.ts phải có <b>parentId</b> đúng bằng{" "}
+              <b>{parentId}</b>.
             </p>
           </div>
         )}
@@ -272,7 +280,7 @@ export default function ShopParent() {
 
       {/* ====== BUY MODAL (SWAL STYLE) ====== */}
       {buy.open && (() => {
-        const item = childs.find((x) => x.id === buy.itemId);
+        const item = childs.find((x: any) => String(x.id) === String(buy.itemId));
         if (!item) return null;
 
         const subtotal = calcSubtotal(item.price, buy.qty);
@@ -292,6 +300,7 @@ export default function ShopParent() {
                 <button
                   onClick={buy.loading ? undefined : closeBuyModal}
                   className="w-10 h-10 rounded-2xl bg-sky-50 border-2 border-sky-200 font-extrabold"
+                  type="button"
                 >
                   ✕
                 </button>
@@ -299,9 +308,7 @@ export default function ShopParent() {
 
               <div className="mt-3 rounded-[22px] bg-sky-50 border-2 border-sky-200 p-3">
                 <p className="text-[12px] text-slate-500">Tạm tính</p>
-                <p className="font-extrabold text-[20px] text-sky-700">
-                  {formatVND(subtotal)}
-                </p>
+                <p className="font-extrabold text-[20px] text-sky-700">{formatVND(subtotal)}</p>
                 <p className="text-[12px] text-slate-500 mt-1">
                   Giá: {formatVND(item.price)} × {buy.qty}
                 </p>
@@ -313,12 +320,11 @@ export default function ShopParent() {
                 <div className="flex items-center gap-2">
                   <button
                     onClick={() =>
-                      setBuy((s) =>
-                        s.open ? { ...s, qty: Math.max(1, s.qty - 1) } : s
-                      )
+                      setBuy((s) => (s.open ? { ...s, qty: Math.max(1, s.qty - 1) } : s))
                     }
                     className="w-11 h-11 rounded-2xl bg-white border-2 border-sky-200 font-extrabold active:scale-[0.99] transition"
                     disabled={buy.loading}
+                    type="button"
                   >
                     −
                   </button>
@@ -326,11 +332,10 @@ export default function ShopParent() {
                     {buy.qty}
                   </div>
                   <button
-                    onClick={() =>
-                      setBuy((s) => (s.open ? { ...s, qty: s.qty + 1 } : s))
-                    }
+                    onClick={() => setBuy((s) => (s.open ? { ...s, qty: s.qty + 1 } : s))}
                     className="w-11 h-11 rounded-2xl bg-white border-2 border-sky-200 font-extrabold active:scale-[0.99] transition"
                     disabled={buy.loading}
+                    type="button"
                   >
                     +
                   </button>
@@ -352,9 +357,7 @@ export default function ShopParent() {
                     disabled={buy.loading}
                   />
                 </div>
-                <p className="text-[11px] text-slate-500 mt-1">
-                  Coupon sẽ được server kiểm tra thật.
-                </p>
+                <p className="text-[11px] text-slate-500 mt-1">Coupon sẽ được server kiểm tra thật.</p>
               </div>
 
               <button
@@ -366,6 +369,7 @@ export default function ShopParent() {
                     ? "bg-sky-200 text-sky-900 border-sky-300"
                     : "bg-sky-500 text-white border-sky-600"
                 )}
+                type="button"
               >
                 {buy.loading ? "Đang xử lý..." : "Xác nhận mua"}
               </button>
