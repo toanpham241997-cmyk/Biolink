@@ -1,5 +1,7 @@
 import { Switch, Route } from "wouter";
 import FilesPage from "@/pages/Files";
+import ShopPage from "@/pages/shop";
+import ShopDetailPage from "@/pages/shop-detail";
 import ChatPage from "@/pages/Chat";
 import OrdersPage from "@/pages/Orders";
 import OrderDetailPage from "@/pages/OrderDetail";
@@ -22,6 +24,8 @@ function Router() {
         <Route path="/orders" component={OrdersPage} />
         <Route path="/orders/:id" component={OrderDetailPage} />
       <Route path="/files" component={FilesPage} />
+      <Route path="/shop" component={ShopPage} />
+      <Route path="/shop/:id" component={ShopDetailPage} />
       {/* ✅ 404 luôn để CUỐI */}
       <Route component={NotFound} />
     </Switch>
