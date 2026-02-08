@@ -51,7 +51,7 @@ export default defineConfig(() => {
 
     // Build ra /dist/public để server serve static
     build: {
-      outDir: path.resolve(__dirname, "dist", "public"),
+      outDir: path.resolve(__dirname, "dist"),
       emptyOutDir: true,
     },
 
