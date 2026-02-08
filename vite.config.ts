@@ -2,28 +2,27 @@ import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
 import path from "path";
 import { fileURLToPath } from "url";
-
 import runtimeErrorOverlay from "@replit/vite-plugin-runtime-error-modal";
-// Không import cartographer/dev-banner ở đây để tránh lỗi khi build production
+
+// Không import cartographer/dev-banner ở top-level để tránh lỗi build production
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-const isProd = process.env.NODE_ENV === "production";
-const isReplit = process.env.REPL_ID !== undefined;
+export default defineConfig(({ mode }) => {
+  const isProd = mode === "production";
+  const isReplit = process.env.REPL_ID !== undefined;
 
-export default defineConfig(() => {
   const plugins: any[] = [react()];
 
-  // Chỉ bật runtime overlay khi dev (production không cần)
+  // Chỉ bật runtime overlay khi dev
   if (!isProd) {
     plugins.push(runtimeErrorOverlay());
   }
 
-  // Chỉ bật plugin Replit khi đang chạy trên Replit và không phải production
+  // Chỉ bật plugin Replit khi dev + đang chạy trên Replit
   if (!isProd && isReplit) {
     try {
-      // require kiểu CJS để né top-level await
       // eslint-disable-next-line @typescript-eslint/no-var-requires
       const { cartographer } = require("@replit/vite-plugin-cartographer");
       // eslint-disable-next-line @typescript-eslint/no-var-requires
@@ -31,15 +30,18 @@ export default defineConfig(() => {
       plugins.push(cartographer());
       plugins.push(devBanner());
     } catch {
-      // Nếu không có 2 plugin này ở môi trường khác thì bỏ qua, không crash build
+      // Không có plugin thì bỏ qua, không làm crash build
     }
   }
 
   return {
     plugins,
 
-    // App React nằm trong /client
+    // ✅ QUAN TRỌNG: React nằm trong /client
     root: path.resolve(__dirname, "client"),
+
+    // ✅ QUAN TRỌNG: luôn dùng "/" để Vercel không lỗi assets path
+    base: "/",
 
     resolve: {
       alias: {
@@ -49,10 +51,16 @@ export default defineConfig(() => {
       },
     },
 
-    // Build ra /dist/public để server serve static
+    // ✅ FIX VERCEL 404: build ra đúng dist (không /public)
     build: {
       outDir: path.resolve(__dirname, "dist"),
       emptyOutDir: true,
+      sourcemap: !isProd,
+    },
+
+    // Tránh một số lỗi libs dùng process/env trên trình duyệt
+    define: {
+      "process.env.NODE_ENV": JSON.stringify(isProd ? "production" : "development"),
     },
 
     server: {
@@ -60,6 +68,13 @@ export default defineConfig(() => {
         strict: true,
         deny: ["**/.*"],
       },
+      port: 5173,
+      host: true,
+    },
+
+    preview: {
+      port: 4173,
+      host: true,
     },
   };
 });
